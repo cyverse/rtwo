@@ -14,11 +14,9 @@ from libcloud.compute.deployment import MultiStepDeployment
 from libcloud.compute.types import DeploymentError
 
 from threepio import logger
-logger.debug("testing1")
+
 from rtwo import settings
-logger.debug("testing2")
 from rtwo.drivers.common import LoggedScriptDeployment
-from rtwo.drivers.common import prepare_cloudinit_script
 
 from rtwo.exceptions import MissingArgsException, ServiceException
 
@@ -377,9 +375,6 @@ class OSDriver(EshDriver, InstanceActionMixin):
         kwargs.update({'ssh_key': private_key})
 
         kwargs.update({'timeout': 120})
-
-        #cloudinit_script = prepare_cloudinit_script()
-        #kwargs.update({'ex_userdata': cloudinit_script})
 
         return self.deploy_to(instance, *args, **kwargs)
 
