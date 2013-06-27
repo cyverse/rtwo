@@ -7,7 +7,7 @@ Built on top of Apache libcloud with support for modern OpenStack. Also supports
 
 # Install
 ```bash
-pip install -e git://github.com/jmatt/threepio#egg=threepio
+pip install -e git://github.com/iPlantCollaborativeOpenSource/rtwo#egg=rtwo
 ```
 
 # Use
