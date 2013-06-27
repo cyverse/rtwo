@@ -1,16 +1,16 @@
+"""
+OpenStack CloudAdmin Libarary
+    Use this library to:
+    * manage users within Keystone - openstack auth
+"""
 import os
 
 from keystoneclient.exceptions import NotFound, ClientException
 
 from threepio import logger
 
-from service.drivers.common import _connect_to_keystone,\
+from rtwo.drivers.common import _connect_to_keystone,\
     _connect_to_nova, find
-"""
-OpenStack CloudAdmin Libarary
-    Use this library to:
-    * manage users within Keystone - openstack auth
-"""
 
 
 class UserManager():

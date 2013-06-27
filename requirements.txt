@@ -1,0 +1,8 @@
+apache-libcloud
+httplib2
+paramiko
+git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
+git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
+git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
+git+git://github.com/openstack/python-quantumclient.git#egg=python-quantumclient
+git+git://github.com/jmatt/threepio.git#egg=threepio

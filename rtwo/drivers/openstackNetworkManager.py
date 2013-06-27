@@ -8,7 +8,7 @@ import os
 
 from threepio import logger
 
-from service.drivers.common import _connect_to_quantum,\
+from rtwo.drivers.common import _connect_to_quantum,\
     get_default_subnet
 
 

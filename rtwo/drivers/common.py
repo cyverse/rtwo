@@ -17,7 +17,7 @@ from threepio import logger
 
 from rtwo import settings
 
-from service.system_calls import run_command
+from rtwo.system_calls import run_command
 
 
 class LoggedScriptDeployment(ScriptDeployment):
