@@ -12,8 +12,8 @@ from threepio import logger
 
 from rtwo import settings
 
-from rtwo.drivers.openstackUserManager import UserManager
-from rtwo.drivers.openstackNetworkManager import NetworkManager
+from rtwo.drivers.openstack_user import UserManager
+from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.common import _connect_to_glance, _connect_to_nova,\
     _connect_to_keystone
 

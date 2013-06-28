@@ -21,7 +21,7 @@ from libcloud.compute.base import StorageVolume,\
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
-from rtwo.drivers.openstackNetworkManager import NetworkManager
+from rtwo.drivers.openstack_network import NetworkManager
 from quantumclient.common.exceptions import QuantumClientException
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
