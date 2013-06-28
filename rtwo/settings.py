@@ -33,13 +33,14 @@ if not settings:
     settings.OPENSTACK_DEFAULT_ROUTER = "public_router"
     settings.EUCA_ADMIN_KEY = ""
     settings.EUCA_ADMIN_SECRET = ""
+    settings.SERVER_URL = ""
 
 def set_settings(settings):
     global OPENSTACK_ADMIN_KEY, OPENSTACK_ADMIN_SECRET,\
         OPENSTACK_AUTH_URL, OPENSTACK_ADMIN_URL,\
         OPENSTACK_ADMIN_TENANT, OPENSTACK_DEFAULT_REGION,\
         OPENSTACK_DEFAULT_ROUTER, EUCA_ADMIN_KEY,\
-        EUCA_ADMIN_SECRET
+        EUCA_ADMIN_SECRET, SERVER_URL
     OPENSTACK_ADMIN_KEY = settings.OPENSTACK_ADMIN_KEY
     OPENSTACK_ADMIN_SECRET = settings.OPENSTACK_ADMIN_SECRET
     OPENSTACK_AUTH_URL = settings.OPENSTACK_AUTH_URL
@@ -49,6 +50,7 @@ def set_settings(settings):
     OPENSTACK_DEFAULT_ROUTER = settings.OPENSTACK_DEFAULT_ROUTER
     EUCA_ADMIN_KEY = settings.EUCA_ADMIN_KEY
     EUCA_ADMIN_SECRET = settings.EUCA_ADMIN_SECRET
+    SERVER_URL = settings.SERVER_URL
 
 set_settings(settings)
 
