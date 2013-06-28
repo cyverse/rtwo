@@ -24,7 +24,6 @@ if not settings:
     class Settings(object):
         pass
     settings = Settings()
-    settings.get_uid_number = lambda: 0
     settings.OPENSTACK_ADMIN_KEY = ""
     settings.OPENSTACK_ADMIN_SECRET = ""
     settings.OPENSTACK_AUTH_URL = ""
@@ -40,7 +39,7 @@ def set_settings(settings):
         OPENSTACK_AUTH_URL, OPENSTACK_ADMIN_URL,\
         OPENSTACK_ADMIN_TENANT, OPENSTACK_DEFAULT_REGION,\
         OPENSTACK_DEFAULT_ROUTER, EUCA_ADMIN_KEY,\
-        EUCA_ADMIN_SECRET, get_uid_number
+        EUCA_ADMIN_SECRET
     OPENSTACK_ADMIN_KEY = settings.OPENSTACK_ADMIN_KEY
     OPENSTACK_ADMIN_SECRET = settings.OPENSTACK_ADMIN_SECRET
     OPENSTACK_AUTH_URL = settings.OPENSTACK_AUTH_URL
@@ -50,7 +49,6 @@ def set_settings(settings):
     OPENSTACK_DEFAULT_ROUTER = settings.OPENSTACK_DEFAULT_ROUTER
     EUCA_ADMIN_KEY = settings.EUCA_ADMIN_KEY
     EUCA_ADMIN_SECRET = settings.EUCA_ADMIN_SECRET
-    get_uid_number = settings.get_uid_number
 
 set_settings(settings)
 
