@@ -46,7 +46,7 @@ class NetworkManager(object):
         return user_map
 
     def create_project_network(self, username, password,
-                               project_name, **kwargs):
+                               project_name, get_cidr=None, **kwargs):
         """
         This method should be run once when a new project is created
         (As the user):
@@ -74,7 +74,7 @@ class NetworkManager(object):
                                          '%s-subnet' % project_name,
                                          network['id'],
                                          username,
-                                         get_cidr=get_default_subnet)
+                                         get_cidr=get_cidr)
         public_router = self.find_router(router_name)
         if public_router:
             public_router = public_router[0]
