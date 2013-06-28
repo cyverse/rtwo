@@ -21,7 +21,9 @@ except:
 
 
 if not settings:
-    settings = object()
+    class Settings(object):
+        pass
+    settings = Settings()
     settings.OPENSTACK_ADMIN_KEY = ""
     settings.OPENSTACK_ADMIN_SECRET = ""
     settings.OPENSTACK_AUTH_URL = ""
