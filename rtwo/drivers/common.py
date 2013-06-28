@@ -159,6 +159,7 @@ def get_ranges(uid_number, inc=0):
     return (block1, block2)
 
 
+
 def get_default_subnet(username, inc=0, get_uid_number=None):
     """
     Return the default subnet for the username and provider.
