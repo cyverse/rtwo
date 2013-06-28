@@ -4,18 +4,37 @@
     if installed. Otherwise try to use test_settings.
 """
 import threepio
-
-import rtwo
+if not threepio.logger:
+    threepio.initialize("rtwo")
+from threepio import logger
 
 try:
     from django.conf import settings
+    dir(settings) # Force it to fail.
 except:
+    settings = None
     try:
         from rtwo import test_settings as settings
+        dir(settings) # Force it to fail.
     except:
-        pass
+        settings = None
+
+
+if not settings:
+    settings = object()
+    settings.OPENSTACK_ADMIN_KEY = ""
+    settings.OPENSTACK_ADMIN_SECRET = ""
+    settings.OPENSTACK_AUTH_URL = ""
+    settings.OPENSTACK_ADMIN_URL = ""
+    settings.OPENSTACK_ADMIN_TENANT = ""
+    settings.OPENSTACK_DEFAULT_REGION = "ValhallaRegion"
+    settings.OPENSTACK_DEFAULT_ROUTER = "public_router"
 
 def set_settings(settings):
+    global OPENSTACK_ADMIN_KEY, OPENSTACK_ADMIN_SECRET,\
+        OPENSTACK_AUTH_URL, OPENSTACK_ADMIN_URL,\
+        OPENSTACK_ADMIN_TENANT, OPENSTACK_DEFAULT_REGION,\
+        OPENSTACK_DEFAULT_ROUTER
     OPENSTACK_ADMIN_KEY = settings.OPENSTACK_ADMIN_KEY
     OPENSTACK_ADMIN_SECRET = settings.OPENSTACK_ADMIN_SECRET
     OPENSTACK_AUTH_URL = settings.OPENSTACK_AUTH_URL
@@ -24,16 +43,7 @@ def set_settings(settings):
     OPENSTACK_DEFAULT_REGION = settings.OPENSTACK_DEFAULT_REGION
     OPENSTACK_DEFAULT_ROUTER = settings.OPENSTACK_DEFAULT_ROUTER
 
-if settings:
-    set_settings(settings)
-else:
-    OPENSTACK_ADMIN_KEY=""
-    OPENSTACK_ADMIN_SECRET=""
-    OPENSTACK_AUTH_URL=""
-    OPENSTACK_ADMIN_URL=""
-    OPENSTACK_ADMIN_TENANT=""
-    OPENSTACK_DEFAULT_REGION="ValhallaRegion"
-    OPENSTACK_DEFAULT_ROUTER="public_router"
+set_settings(settings)
 
 OPENSTACK_ARGS = {
     'username': OPENSTACK_ADMIN_KEY,
@@ -47,6 +57,3 @@ OPENSTACK_NETWORK_ARGS = {
     'region_name': OPENSTACK_DEFAULT_REGION,
     'router_name': OPENSTACK_DEFAULT_ROUTER
 }
-
-if not threepio.logger:
-    threepio.initialize("rtwo")
