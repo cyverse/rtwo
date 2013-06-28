@@ -159,13 +159,16 @@ def get_ranges(uid_number, inc=0):
     return (block1, block2)
 
 
-def get_default_subnet(username, inc=0):
+def get_default_subnet(username, inc=0, get_uid_number=None):
     """
     Return the default subnet for the username and provider.
 
     Add and mod by inc to allow for collitions.
     """
-    uid_number = get_uid_number(username)
+    if get_uid_number:
+        uid_number = get_uid_number(username)
+    else:
+        uid_number = 0
 
     if uid_number:
         (block1, block2) = get_ranges(uid_number, inc)
