@@ -20,7 +20,7 @@ For more information, please see: https://github.com/iPlantCollaborativeOpenSour
 """ % (get_version('short'), readme)
 
 with open('requirements.txt') as r:
-    required = f.readlines()
+    required = r.readlines()
 
 setuptools.setup(
     name='rtwo',
