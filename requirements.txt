@@ -1,6 +1,6 @@
-apache-libcloud
-httplib2
-paramiko
+apache-libcloud==0.12.4
+httplib2==0.8
+paramiko==1.10.1
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
