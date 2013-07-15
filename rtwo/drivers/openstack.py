@@ -12,17 +12,21 @@ from datetime import datetime
 from threepio import logger
 
 import libcloud.compute.ssh
-from libcloud.compute.ssh import SSHClient
+
 from libcloud.compute.types import Provider, NodeState, DeploymentError,\
-                                   LibcloudError
+    LibcloudError
 from libcloud.compute.base import StorageVolume,\
     NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
     NodeAuthPassword, NodeDriver
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
-from rtwo.drivers.openstack_network import NetworkManager
 from quantumclient.common.exceptions import QuantumClientException
+
+from rfive.fabricSSH import fabricSSHClient
+
+from rtwo.drivers.openstack_network import NetworkManager
+
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
@@ -39,7 +43,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                      "user/tenant as extra"],
         "create_node": ["Create node with ssh_key", "ssh_key"],
         "ex_create_node_with_network": ["Create node with floating IP"
-                                     " and ssh_key", "ssh_key"],
+                                        " and ssh_key", "ssh_key"],
         "ex_deploy_to_node": ["Deploy to existing node"],
         "ex_suspend_node": ["Suspends the node"],
         "ex_resume_node": ["Resume the node"],
@@ -61,7 +65,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_deallocate_floating_ip": ["Deallocate floating IP"],
         "ex_associate_floating_ip": ["Associate floating IP with node"],
         "ex_disassociate_floating_ip": ["Disassociate floating IP from node"],
-        "ex_list_all_volumes": ["List all volumes for all tenants for the user"],
+        "ex_list_all_volumes": ["List all volumes for all tenants"
+                                " for the user"],
         "ex_list_volume_attachments": ["List all attached volumes for node"],
         "ex_get_volume_attachment": ["Get details about an attached volume"],
         "ex_create_security_group": ["Add security group to tenant"],
@@ -83,7 +88,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def _to_volume(self, api_volume):
         created_time = datetime.strptime(api_volume['createdAt'],
-                                             '%Y-%m-%dT%H:%M:%S.%f')
+                                         '%Y-%m-%dT%H:%M:%S.%f')
         extra = {
             'id': api_volume['id'],
             'displayName': api_volume['displayName'],
@@ -135,7 +140,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 for (label, ip_addrs) in api_node['addresses'].items():
                     for ip in ip_addrs:
                         # If OS IP:type floating, assign to public network
-                        # All other 
+                        # All other
                         if ip.get('OS-EXT-IPS:type') == 'floating':
                             public_ips.append(ip['addr'])
                         else:
@@ -143,10 +148,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 #NOTE: This is a hack until we update grizzly
                 if api_node['metadata'].get('public_ip'):
                     public_ips.append(api_node['metadata']['public_ip'])
-                [node.public_ips.append(ip) for ip in public_ips 
-		 if ip not in node.public_ips]
+                [node.public_ips.append(ip) for ip in public_ips
+                 if ip not in node.public_ips]
                 [node.private_ips.append(ip) for ip in private_ips
-		 if ip not in node.private_ips]
+                 if ip not in node.private_ips]
             except (IndexError, KeyError) as no_ip:
                 logger.warn("No IP for node:%s" % api_node['id'])
 
@@ -191,9 +196,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         #NOTE: This line is needed to authenticate via SSH_Keypair instead!
         node.extra['password'] = None
 
-        #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
+        #NOTE: Using this to wait for the time it takes to launch
+        # instance and have a valid IP port
         time.sleep(20)
-        #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
+        #TODO: It would be better to hook in an asnyc thread that
+        # waits for valid IP port
         #TODO: This belongs in a eelery task.
         #server_id = node.id
         self._add_floating_ip(node, **kwargs)
@@ -241,7 +248,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 ssh_interface=ssh_interface)[0]
             if not ip_addresses:
                 raise Exception('IP address was not found')
-            logger.info("Ip Address found after calling wait_until_running: %s" % ip_addresses)
+            logger.info("Ip Address found after calling wait_until_running: %s"
+                        % ip_addresses)
         except Exception:
             e = sys.exc_info()[1]
             raise DeploymentError(node=node, original_exception=e, driver=self)
@@ -270,7 +278,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # Todo: Need to fix paramiko so we can catch a more specific
                 # exception
                 logger.exception("Could not connect to SSH on IP address %s" %
-                        ip_addresses[0])
+                                 ip_addresses[0])
                 e = sys.exc_info()[1]
                 deploy_error = e
             else:
@@ -323,11 +331,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                            ssh_port, ssh_username,
                                            ssh_password, ssh_key_file,
                                            ssh_timeout, timeout, max_tries):
-        ssh_client = SSHClient(hostname=ssh_hostname,
-                               port=ssh_port, username=ssh_username,
-                               password=ssh_password,
-                               key=ssh_key_file,
-                               timeout=ssh_timeout)
+        ssh_client = fabricSSHClient(hostname=ssh_hostname,
+                                     port=ssh_port, username=ssh_username,
+                                     password=ssh_password,
+                                     key=ssh_key_file,
+                                     timeout=ssh_timeout)
 
         # Connect to the SSH server running on the node
         logger.info(ssh_client.__dict__)
@@ -373,7 +381,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             else:
                 ssh_client.close()
                 return node
-
 
     def ex_list_networks(self, region=None):
         """
@@ -455,7 +462,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             data_dict['volume']['display_name'] = kwargs['display_name']
         if kwargs.get('display_description', None):
             data_dict['volume']['display_description'] =\
-            kwargs['display_description']
+                kwargs['display_description']
         if kwargs.get('metadata', None):
             data_dict['volume']['metadata'] = kwargs['metadata']
         server_resp = self.connection.request('/os-volumes/%s' % kwargs['id'],
@@ -842,7 +849,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         from the list (key_location, key_file, etc.)
         """
         kwargs.update({'ex_keyname': unicode(self.key)})
-        public_key = open("/opt/dev/atmosphere/extras/ssh/id_rsa.pub", "r").read()
+        public_key = open("/opt/dev/atmosphere/extras/ssh/id_rsa.pub",
+                          "r").read()
         keypair = self._get_or_create_keypair(name=unicode(self.key),
                                               public_key=public_key)
         if not keypair:
@@ -873,7 +881,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 #409 == Conflict
                 #Lets look through the message and determine why:
                 logger.info("Conflict stopped node from associating new "
-                "floating IP. Message=%s" % q_error.message)
+                            "floating IP. Message=%s" % q_error.message)
             #Handle any conflicts that make sense and return, all others:
             raise
 
@@ -906,7 +914,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @param      metadata: Key/Value metadata to associate with a node
         @type       metadata: C{dict}
 
-        @param      replace_metadata: Replace all metadata on node with new metdata
+        @param      replace_metadata: Replace all metadata on node with
+        new metdata
         @type       replace_metadata: C{bool}
 
         @rtype: C{dict}
@@ -915,18 +924,17 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         #      while POST will keep metadata that does not match
         #      The default for libcloud is to replace/override tags.
         # Ex:
-        #     {'name': 'test_name'} + PUT {'tags': 'test_tag'} 
+        #     {'name': 'test_name'} + PUT {'tags': 'test_tag'}
         #     = {'tags': 'test_tag'}
-        #     {'name': 'test_name'} + POST {'tags': 'test_tag'} 
+        #     {'name': 'test_name'} + POST {'tags': 'test_tag'}
         #     = {'name': 'test_name', 'tags': 'test_tag'}
-        #   
+        #
         #
         method = 'PUT' if replace_metadata else 'POST'
         return self.connection.request(
             '/servers/%s/metadata' % (node.id,), method=method,
             data={'metadata': metadata}
         ).object['metadata']
-
 
     def ex_get_metadata(self, node, key=None):
         """
@@ -945,7 +953,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return self.connection.request(
                 '/servers/%s/metadata/%s' % (node.id, key,),
                 method='GET',).object['meta']
-        else: 
+        else:
             return super(OpenStack_Esh_NodeDriver, self).ex_get_metadata(node)
 
     def ex_delete_metadata(self, node, key):
