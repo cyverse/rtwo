@@ -19,9 +19,6 @@ To install use pip install git+git://git@github.com:iPlantCollaborativeOpenSourc
 For more information, please see: https://github.com/iPlantCollaborativeOpenSource/rtwo
 """ % (get_version('short'), readme)
 
-with open('requirements.txt') as r:
-    required = r.readlines()
-
 setuptools.setup(
     name='rtwo',
     version=get_version('short'),
@@ -32,7 +29,6 @@ setuptools.setup(
     license="Apache License, Version 2.0",
     url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
     packages=setuptools.find_packages(),
-    install_requires=required,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
