@@ -23,7 +23,8 @@ from libcloud.utils.py3 import httplib
 
 from quantumclient.common.exceptions import QuantumClientException
 
-from rfive.fabricSSH import fabricSSHClient
+from libcloud.compute.ssh import SSHClient
+#from rfive.fabricSSH import fabricSSHClient
 
 from rtwo.drivers.openstack_network import NetworkManager
 
@@ -331,11 +332,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                            ssh_port, ssh_username,
                                            ssh_password, ssh_key_file,
                                            ssh_timeout, timeout, max_tries):
-        ssh_client = fabricSSHClient(hostname=ssh_hostname,
-                                     port=ssh_port, username=ssh_username,
-                                     password=ssh_password,
-                                     key=ssh_key_file,
-                                     timeout=ssh_timeout)
+        ssh_client = SSHClient(hostname=ssh_hostname,
+                               port=ssh_port, username=ssh_username,
+                               password=ssh_password,
+                               key=ssh_key_file,
+                               timeout=ssh_timeout)
 
         # Connect to the SSH server running on the node
         logger.info(ssh_client.__dict__)
