@@ -328,20 +328,20 @@ class OSDriver(EshDriver, InstanceActionMixin):
             'if [ ! -f "/var/log/atmo/deploy.log" ]; then\n'
             'touch /var/log/atmo/deploy.log\n'
             'fi',
-            name="deploy_init_log.sh")
+            name="./deploy_init_log.sh")
         script_deps = LoggedScriptDeployment(
             "apt-get update;apt-get install -y emacs vim wget language-pack-en"
             + " make gcc g++ gettext texinfo autoconf automake",
-            name="deploy_aptget_update.sh",
+            name="./deploy_aptget_update.sh",
             logfile="/var/log/atmo/deploy.log")
         script_wget = LoggedScriptDeployment(
             "wget -O %s %s%s" % (atmo_init, settings.SERVER_URL,
                                  server_atmo_init),
-            name='deploy_wget_atmoinit.sh',
+            name='./deploy_wget_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
         script_chmod = LoggedScriptDeployment(
             "chmod a+x %s" % atmo_init,
-            name='deploy_chmod_atmoinit.sh',
+            name='./deploy_chmod_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
         instance_token = kwargs.get('token', '')
         if not instance_token:
@@ -362,7 +362,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
         #logger.debug(isinstance(str_awesome_atmo_call, basestring))
         script_atmo_init = LoggedScriptDeployment(
             str_awesome_atmo_call,
-            name='deploy_call_atmoinit.sh',
+            name='./deploy_call_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
         msd = MultiStepDeployment([script_init,
                                    script_deps,
