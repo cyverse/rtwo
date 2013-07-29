@@ -46,7 +46,7 @@ class NetworkManager(object):
         return user_map
 
     def create_project_network(self, username, password,
-                               project_name, get_uid_number=None, **kwargs):
+                               project_name, get_uid_number_=None, **kwargs):
         """
         This method should be run once when a new project is created
         (As the user):
@@ -74,7 +74,7 @@ class NetworkManager(object):
                                          '%s-subnet' % project_name,
                                          network['id'],
                                          username,
-                                         get_uid_number,
+                                         get_uid_number=get_uid_number_,
                                          get_cidr=get_default_subnet)
         public_router = self.find_router(router_name)
         if public_router:
@@ -248,7 +248,8 @@ class NetworkManager(object):
 
     def create_user_subnet(self, quantum, subnet_name,
                            network_id, username,
-                           ip_version=4, get_uid_number=None, get_cidr=get_default_subnet):
+                           ip_version=4, get_uid_number=None,
+                           get_cidr=get_default_subnet):
         """
         Create a subnet for the user using the get_cidr function to get
         a private subnet range.
