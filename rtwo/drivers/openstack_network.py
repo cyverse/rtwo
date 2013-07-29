@@ -267,13 +267,14 @@ class NetworkManager(object):
                                               cidr)
                 else:
                     logger.warn("Unable to create cidr for subnet "
-                                "for user: %s")
+                                "for user: %s" % username)
                     inc += 1
             except Exception as e:
-                if not get_unique_number:
-                    
                 logger.exception(e)
                 logger.warn("Unable to create subnet for user: %s" % username)
+                if not get_unique_number:
+                    logger.warn("No get_unique_number method "
+                                "provided for user: %s" % username)
                 inc += 1
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
