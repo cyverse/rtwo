@@ -35,7 +35,7 @@ class AccountDriver():
         user_creds = self._get_openstack_credentials(username,
                                                      password,
                                                      tenant_name)
-        quantum = self.network_manager.new_connection(**user_creds)
+        neutron = self.network_manager.new_connection(**user_creds)
         keystone = _connect_to_keystone(*args, **kwargs)
         nova = _connect_to_nova(*args, **kwargs)
         glance = _connect_to_glance(keystone, *args, **kwargs)
@@ -43,7 +43,7 @@ class AccountDriver():
             'glance': glance,
             'keystone': keystone,
             'nova': nova,
-            'quantum': quantum,
+            'neutron': neutron,
             'horizon': self._get_horizon_url(keystone.tenant_id)
         }
 
