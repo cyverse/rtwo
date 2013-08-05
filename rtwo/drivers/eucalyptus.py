@@ -183,13 +183,13 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         """
         def _attached_to_instance(vol):
             attached_instance_id = vol.extra.get(
-                'attachmentSet', {}).get('instanceId', '')
+                'attachmentSet', [{}])[0].get('instanceId', '')
             return attached_instance_id == instance_id
 
         # get all volumes that are attached to this instance
         # add devices to list
         attached_volumes = filter(_attached_to_instance, self.list_volumes())
-        used_devices = [vol.extra.get('attachmentSet', {}).get('device')
+        used_devices = [vol.extra.get('attachmentSet', [{}])[0].get('device')
                         for vol in attached_volumes]
 
         logger.debug('List of used devices:%s' % used_devices)
