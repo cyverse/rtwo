@@ -172,7 +172,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         svolume.extra = {
             'createTime': created_time,
             'status': volume['status'],
-            'attachmentSet': self._get_attachment_set(element_as)}
+            'attachmentSet': [self._get_attachment_set(element_as)]}
         return svolume
 
     def _getNextAvailableDevice(self, instance_id):
