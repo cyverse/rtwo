@@ -394,9 +394,12 @@ class OSDriver(EshDriver, InstanceActionMixin):
         if not kwargs.get('timeout'):
             kwargs.update({'timeout': 120})
 
-        username = self.identity.user.username
         logger.info("Attempting deployment to node")
-        self._connection.ex_deploy_to_node(instance._node,
+        node = instance
+        #Get the libcloud node, not the eshInstance
+        if hasattr(instance, '_node'):
+            node = instance._node
+        self._connection.ex_deploy_to_node(node,
                                            *args, **kwargs)
         return True
 
