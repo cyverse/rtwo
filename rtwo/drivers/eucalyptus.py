@@ -76,6 +76,8 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
                                                   namespace=NAMESPACE)),
             driver=self.connection.driver,
             extra={
+                'location': findtext(element=element, xpath='imageLocation',
+                                                  namespace=NAMESPACE),
                 'state': findattr(element=element, xpath="imageState",
                                   namespace=NAMESPACE),
                 'ownerid': findattr(element=element, xpath="imageOwnerId",
