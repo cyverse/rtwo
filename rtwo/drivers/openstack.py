@@ -21,7 +21,7 @@ from libcloud.compute.base import StorageVolume,\
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
-from quantumclient.common.exceptions import QuantumClientException
+from neutronclient.common.exceptions import NeutronClientException
 
 from rfive.fabricSSH import FabricSSHClient
 
@@ -386,7 +386,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         Overrides the 'os-networksv2' API from libcloud in favor of the
         Openstack Network Manager. We will use this until libcloud completely
-        supports quantum
+        supports neutron
         """
         from atmosphere import settings
         network_manager = NetworkManager(**settings.OPENSTACK_ARGS)
@@ -858,9 +858,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def _add_floating_ip(self, node, *args, **kwargs):
         """
-        Add IP (Quantum)
-        There is no good way to interface libcloud + nova + quantum,
-        instead we call quantumclient directly..
+        Add IP (Neutron)
+        There is no good way to interface libcloud + nova + neutron,
+        instead we call neutronclient directly..
         Feel free to replace when a better mechanism comes along..
         """
         network_manager = NetworkManager.lc_driver_init(self)
@@ -876,7 +876,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         try:
             floating_ip = network_manager.associate_floating_ip(node.id)
-        except QuantumClientException as q_error:
+        except NeutronClientException as q_error:
             if q_error.status_code == 409:
                 #409 == Conflict
                 #Lets look through the message and determine why:
@@ -893,9 +893,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def ex_delete_ports(self, node, *args, **kwargs):
         """
-        Delete Ports related to node. (Quantum)
-        There is no good way to interface libcloud + nova + quantum,
-        instead we use quantumclient directly..
+        Delete Ports related to node. (Neutron)
+        There is no good way to interface libcloud + nova + neutron,
+        instead we use neutronclient directly..
         Hopefully Openstack provides a better option soon.
         """
         network_manager = NetworkManager.lc_driver_init(self)

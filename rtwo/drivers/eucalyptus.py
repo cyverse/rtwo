@@ -76,6 +76,8 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
                                                   namespace=NAMESPACE)),
             driver=self.connection.driver,
             extra={
+                'location': findtext(element=element, xpath='imageLocation',
+                                                  namespace=NAMESPACE),
                 'state': findattr(element=element, xpath="imageState",
                                   namespace=NAMESPACE),
                 'ownerid': findattr(element=element, xpath="imageOwnerId",
@@ -172,7 +174,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         svolume.extra = {
             'createTime': created_time,
             'status': volume['status'],
-            'attachmentSet': self._get_attachment_set(element_as)}
+            'attachmentSet': [self._get_attachment_set(element_as)]}
         return svolume
 
     def _getNextAvailableDevice(self, instance_id):
@@ -183,13 +185,13 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         """
         def _attached_to_instance(vol):
             attached_instance_id = vol.extra.get(
-                'attachmentSet', {}).get('instanceId', '')
+                'attachmentSet', [{}])[0].get('instanceId', '')
             return attached_instance_id == instance_id
 
         # get all volumes that are attached to this instance
         # add devices to list
         attached_volumes = filter(_attached_to_instance, self.list_volumes())
-        used_devices = [vol.extra.get('attachmentSet', {}).get('device')
+        used_devices = [vol.extra.get('attachmentSet', [{}])[0].get('device')
                         for vol in attached_volumes]
 
         logger.debug('List of used devices:%s' % used_devices)
