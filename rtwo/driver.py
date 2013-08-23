@@ -485,7 +485,7 @@ class AWSDriver(EshDriver):
         """
         username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
-        server_atmo_init = "/init_files/30/atmo-init-full.py"
+        server_atmo_init = "/init_files/30/atmo_init_full.py"
         script_deps = ScriptDeployment(
             "sudo apt-get install -y emacs vim wget")
         script_wget = ScriptDeployment(
