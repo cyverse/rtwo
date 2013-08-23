@@ -497,7 +497,8 @@ class AWSDriver(EshDriver):
         script_chmod = ScriptDeployment("sudo chmod a+x %s" % atmo_init)
         instance_token = kwargs.get('token', '')
         awesome_atmo_call = "sudo %s --service_type=%s --service_url=%s"
-        awesome_atmo_call += " --server=%s --user_id=%s --token=%s &> %s"
+        awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
+        awesome_atmo_call += " --name=%s &> %s"
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
@@ -505,6 +506,7 @@ class AWSDriver(EshDriver):
             settings.SERVER_URL,
             username,
             instance_token,
+            kwargs.get('name', ''),
             '/var/log/atmo_init_full.err')
         logger.debug(awesome_atmo_call)
         str_awesome_atmo_call = str(awesome_atmo_call)
