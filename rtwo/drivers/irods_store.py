@@ -340,7 +340,7 @@ class IRODSDriver(StorageDriver):
 
         @rtype: C{object}
         """
-        object_path = self._get_object_path(obj.container, obj.name)
+        object_path = self._get_object_path(container, object_name)
         try:
             data_object = self.connection.session.data_objects.get(object_path)
         except DataObjectDoesNotExist:
@@ -351,6 +351,8 @@ class IRODSDriver(StorageDriver):
             with open(file_path,'r') as f_to_read:
                 for line in f_to_read:
                     f_to_write.write(line)
+        #Grab the newly updated object (After the write)
+        data_object = self.connection.session.data_objects.get(object_path)
         return self._to_obj(data_object, container)
 
     def delete_object(self, obj):
