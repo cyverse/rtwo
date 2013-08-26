@@ -7,3 +7,4 @@ git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
 git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/jmatt/threepio.git#egg=threepio
+git+git://github.com/cjlarose/pycommands.git#egg=pycommands

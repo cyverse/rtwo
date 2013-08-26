@@ -1,5 +1,7 @@
 import os
 
+from libcloud.utils.files import read_in_chunks
+from libcloud.common.types import LibcloudError
 from libcloud.common.base import ConnectionUserAndKey, RawResponse
 from libcloud.storage.base import Object, Container, StorageDriver
 
@@ -11,8 +13,7 @@ from libcloud.storage.types import ObjectHashMismatchError
 
 from irods.session import iRODSSession
 from irods.models import Collection, User, DataObject
-
-#from threepio.logger import logger
+from irods.exception import DataObjectDoesNotExist, CollectionDoesNotExist
 
 """
 iRODS data store
@@ -26,7 +27,6 @@ class IRODSConnection(ConnectionUserAndKey):
     """
 
     def __init__(self, username, password, host, port, zone, **kwargs):
-        print 'connection init:', username, password, host, port, zone
         self.user_id = username
         self.key = password
         self.host = host
@@ -39,13 +39,45 @@ class IRODSConnection(ConnectionUserAndKey):
             host = self.host
         if not port:
             port = self.port
-        print 'connection connect:', self.user_id, self.key, host, port, self.zone
         session = iRODSSession(host=host, port=port,
                                   user=self.user_id, password=self.key,
                                   zone=self.zone)
         self.session = session
         return session
-        
+       
+    def listdir(self, collection):
+        """
+        Expects an iRODSCollection
+        """
+        files = collection.data_objects
+        dirs = collection.subcollections
+        return (dirs, files)
+
+    def walk(self, root_fs, topdown=True, onerror=None):
+        """Directory tree generator.
+
+        For each directory in the directory tree rooted at top (including top
+        itself, but excluding '.' and '..'), yields a 3-tuple
+
+            dirpath, dirnames, filenames
+        """
+        try:
+            top = self.session.collections.get(root_fs)
+            dirs, nondirs = self.listdir(top)
+        except Exception, err:
+            if onerror is not None:
+                onerror(err)
+            raise
+            #return
+
+        if topdown:
+            yield top, dirs, nondirs
+        for subcollection in dirs:
+            new_path = subcollection.path
+            for x in self.walk(new_path, topdown, onerror):
+                yield x
+        if not topdown:
+            yield top, dirs, nondirs
     
 class IRODSDriver(StorageDriver):
     name = 'iRODS Data Store'
@@ -53,7 +85,7 @@ class IRODSDriver(StorageDriver):
     hash_type = 'md5'
     connectionCls = IRODSConnection
 
-    def __init__(self, key, secret=None, host=None, port=None, zone=None, base_dir=None, **kwargs):
+    def __init__(self, key, secret=None, host=None, port=None, zone=None, base_path=None, **kwargs):
         self.key = key
         self.secret = secret
         self.zone = zone
@@ -68,11 +100,10 @@ class IRODSDriver(StorageDriver):
             args.append(port)
         if self.zone is not None:
             args.append(self.zone)
-        if not base_dir:
-            base_dir = '/%s/home/%s' % (self.zone, self.key)
-        self.base_dir = base_dir
+        if not base_path:
+            base_path = '/%s/home/%s' % (self.zone, self.key)
+        self.base_path = base_path
 
-        print 'driver args: %s' % args
         self.connection = self.connectionCls(*args,
             **self._ex_connection_class_kwargs())
 
@@ -86,15 +117,14 @@ class IRODSDriver(StorageDriver):
         @return: A generator of Container instances.
         @rtype: C{generator} of L{Container}
         """
-        base_container = self.connection.session.collections.get(self.base_dir)
+        base_container = self.connection.session.collections.get(self.base_path)
         if not base_container:
             raise LibcloudError(
-                'Failed to retrieve containers from base container:%s' % self.base_dir,
+                'Failed to retrieve containers from base container:%s' % self.base_path,
                 driver=self)
-        #containers = self._to_containers(obj=base_container.subcollections)
-        #return containers
         for collection in base_container.subcollections:
             yield self._to_container(collection)
+
     def list_containers(self):
         """
         Return a list of containers.
@@ -102,12 +132,12 @@ class IRODSDriver(StorageDriver):
         @return: A list of Container instances.
         @rtype: C{list} of L{Container}
         """
-        base_container = self.connection.session.collections.get(self.base_dir)
+        base_container = self.connection.session.collections.get(self.base_path)
         if not base_container:
             raise LibcloudError(
-                'Failed to retrieve containers from base container:%s' % self.base_dir,
+                'Failed to retrieve containers from base container:%s' % self.base_path,
                 driver=self)
-        containers = self._to_containers(obj=base_container.subcollections)
+        containers = self._to_containers(base_container.subcollections)
         return containers
 
     def list_container_objects(self, container, ex_prefix=None):
@@ -123,7 +153,6 @@ class IRODSDriver(StorageDriver):
         :return: A list of Object instances.
         :rtype: ``list`` of :class:`Object`
         """
-        #TODO: Filter on ex_prefix
         return self._get_objects(container)
 
     def iterate_container_objects(self, container, ex_prefix=None):
@@ -142,31 +171,52 @@ class IRODSDriver(StorageDriver):
         #TODO: Filter on ex_prefix
         return iter(self._get_objects(container))
 
-    def get_container(self, container_name):
-        #TODO: Attach irods base_dir?
+    def get_container(self, container_path):
         try:
-            collection = self.connection.session.collections.get(container_name)
-        except: #CollectionDoesNotExist
+            collection = self.connection.session.collections.get(container_path)
+            return self._to_container(collection)
+        except CollectionDoesNotExist:
             raise ContainerDoesNotExistError(value=None,
                                              driver=self,
-                                             container_name=container.name)
-        return self._to_container(collection)
+                                             container_name=container_path)
 
-    def get_object(self, container_name, object_name):
+    def get_object(self, container_path, object_name):
         try:
-            container = self.get_container(container_name)
+            container = self.get_container(container_path)
+        except CollectionDoesNotExist:
+            raise ContainerDoesNotExistError(value=None, driver=self,
+                                             container_name=container_path)
+        try:
             obj_path = self._get_object_path(container, object_name)
             data_obj = self.connection.session.data_objects.get(obj_path)
-        except: #MultipleResultsFound, DataObjectDoesNotExist
+            return self._to_obj(data_obj, container)
+        except DataObjectDoesNotExist:
             raise ObjectDoesNotExistError(value=None, driver=self,
-                                      object_name=object_name)
-        return self._to_obj(data_obj, container)
+                                          object_name=object_name)
 
+
+    def create_object(self, container, object_name):
+        """
+        Create a new object 'object_name' inside container
+        """
+        object_path = self._get_object_path(obj.container, obj.name)
+        try:
+            new_data_object = self.connection.session.data_objects.create(object_path)
+            return self._to_obj(new_data_object)
+        except: #CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+            raise ObjectError(value='Object with this name already exists.'
+                                    'Name must be unique among all objects '
+                                    'in this container',
+                              driver=self, object_name=object_name)
 
     def create_container(self, container_name):
         """
         Create a new container with path 'container_name'
         """
+        #Containers do not end in slash
+        if container_name.endswith('/'):
+            container_name = container_name[:-1]
+
         self._check_container_name(container_name)
         try:
             new_collection = self.connection.session.collections.create(container_name)
@@ -217,28 +267,55 @@ class IRODSDriver(StorageDriver):
         otherwise.
         @rtype: C{bool}
         """
+        #Check that download location exists
+        base_name = os.path.basename(destination_path)
 
-        base_container = os.path.basename(destination_path)
+        if not base_name and not os.path.exists(destination_path):
+            raise LibcloudError(
+                value='Path %s does not exist' % (destination_path),
+                driver=self)
+        #Determine the file_path where file will be saved
+        if not base_name:
+            file_path = os.path.join(destination_path, obj.name)
+        else:
+            file_path = destination_path
+        #Check that the object/container exists
         try:
-            collection = self.connection.session.collections.get(base_continer)
+            from_dir = obj.container.name
+            collection = self.connection.session.collections.get(from_dir)
         except: #CollectionDoesNotExist
             raise LibcloudError(
                 value='Container %s does not exist,' % (base_container) +
-                'cannot place object in %s' % (destination_path),
+                'cannot download object to %s' % (destination_path),
                 driver=self)
-        #Container exists, attempt to create new file
-        #TODO: if overwrite=True, check for and delete/reuse object first.
-        try:
-            new_obj = self.connection.session.data_objects.create(destination_path)
-        except: #CollectionDoesNotExist
+
+        if os.path.exists(file_path) and not overwrite_existing:
             raise LibcloudError(
-                value='Could not create new object at ' % (destination_path),
+                value='File %s already exists, but ' % (file_path) +
+                'overwrite_existing=False',
                 driver=self)
-        #Then write to the new file
-        #TODO: What am I writing?
-        return True
+
+        with obj.extra['irods'].open('r+') as read_file:
+            with open(file_path, 'w') as write_file:
+                for line in read_file:
+                    write_file.write(line)
 
     def download_object_as_stream(self, obj, chunk_size=None):
+        """
+        Return a generator which yields object data.
+
+        @param obj: Object instance
+        @type obj: L{Object}
+
+        @param chunk_size: Optional chunk size (in bytes).
+        @type chunk_size: C{int}
+
+        @rtype: C{object}
+        """
+        #Fails with: 'iRODSDataObjectFile' object has no attr 'next'
+        #with obj.extra['irods'].open('r+') as read_file:
+        #    for data in read_in_chunks(read_file, chunk_size=chunk_size):
+        #        yield data
         raise NotImplementedError()
 
     def upload_object(self, file_path, container, object_name, extra=None,
@@ -264,20 +341,24 @@ class IRODSDriver(StorageDriver):
         @rtype: C{object}
         """
         object_path = self._get_object_path(obj.container, obj.name)
-        data_object = self.connection.session.data_objects.get(object_path)
-        
+        try:
+            data_object = self.connection.session.data_objects.get(object_path)
+        except DataObjectDoesNotExist:
+            #Create the object
+            data_object = self.connection.session.data_objects.create(object_path)
+
         with data_object.open('w') as f_to_write:
             with open(file_path,'r') as f_to_read:
                 for line in f_to_read:
                     f_to_write.write(line)
-        return True
+        return self._to_obj(data_object, container)
 
     def delete_object(self, obj):
         object_path = self._get_object_path(obj.container, obj.name)
         try:
             self.connection.session.data_objects.delete(object_path)
             return True
-        except: #DataObjectDoesNotExist
+        except DataObjectDoesNotExist:
             raise ObjectDoesNotExistError(value=None, driver=self,
                                           object_name=obj.name)
 
@@ -285,14 +366,11 @@ class IRODSDriver(StorageDriver):
     def _get_objects(self, container):
         """
         Iterate through all data_objects on iRODS container
-
-        TODO: See if we can implement an os.walk() in pyrods
-        TODO: Recursively iterate through iRODS container and return the objects found
         """
-        
-        collection = self.connection.session.collections.get(container.name)
-        data_files = collection.data_objects
-        return [self._to_obj(datafile) for datafile in data_files]
+        container_url = self._get_container_path(container)
+        for root, collections, data_objects in self.connection.walk(container_url):
+            for data_obj in data_objects:
+                yield self._to_obj(data_obj, root)
 
     def _get_container_path(self, container):
         """
@@ -304,7 +382,7 @@ class IRODSDriver(StorageDriver):
         @return: A path for this container.
         @rtype: C{str}
         """
-        #TODO: Maybe add base_dir to this?
+        #NOTE: Container.name contains FULL PATH
         return '%s' % (container.name)
 
     def _get_object_path(self, container, object_name):
@@ -329,7 +407,7 @@ class IRODSDriver(StorageDriver):
         """
         These rules define 'allowable' names.
         """
-        name = name.replace('\\','').replace('/','')
+        name = name.replace('\\','').replace('/','').replace(' ','_')
         return name
 
     def _check_container_name(self, container_name):
@@ -340,34 +418,37 @@ class IRODSDriver(StorageDriver):
         @type container_name: C{str}
         """
 
-        if '/' in container_name or '\\' in container_name:
+        if ' ' in container_name:
             raise InvalidContainerNameError(value=None, driver=self,
                                             container_name=container_name)
 
-    def _to_containers(self, obj):
-        for subcol in obj:
-            yield self._to_container(element)
+    def _to_containers(self, subcollections):
+        for collection in subcollections:
+            yield self._to_container(collection)
 
     def _to_objs(self, obj, container):
         return [self._to_obj(element, container) for element in obj]
 
-    def _to_container(self, element):
+    def _to_container(self, irods_collection):
         extra = {
-            'name': element.name,
-            'id': element.id,
-            'meta': element.metadata._meta
+            'name': irods_collection.name,
+            'path': irods_collection.path,
+            'id': irods_collection.id,
+            'meta': irods_collection.metadata._meta
         }
 
-        container = Container(name=element.path, extra=extra, driver=self)
+        container = Container(name=irods_collection.path, 
+                              extra=extra, driver=self)
         return container
 
-    def _to_obj(self, element, container):
-        extra = {'path': element.path,
-                 'create_time': element.create_time,
-                 'last_modified': element.modify_time}
-        obj = Object(name=element.name,
-                     size=element.size,
-                     hash=element.checksum,
+    def _to_obj(self, irods_data_obj, container):
+        extra = {'path': irods_data_obj.path,
+                 'create_time': irods_data_obj.create_time,
+                 'irods': irods_data_obj,
+                 'last_modified': irods_data_obj.modify_time}
+        obj = Object(name=irods_data_obj.name,
+                     size=irods_data_obj.size,
+                     hash=irods_data_obj.checksum,
                      extra=extra,
                      meta_data={},
                      container=container,
