@@ -420,6 +420,46 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         resp = self._node_action(node, 'resume')
         return resp.status == httplib.ACCEPTED
 
+    #quotas
+    def _get_tenant_id(self):
+        if not self.connection.request_path:
+            try:
+                #Will fail,but we MUST make a request to authenticate
+                self.connection.request('')
+            except:
+                pass
+        tenant_id = self.connection.request_path.split('/')[-1]
+        return tenant_id
+
+    def ex_get_quota(self):
+        tenant_id = self._get_tenant_id()
+        return self.connection.request("/os-quota-sets/%s" % tenant_id).object
+
+    def ex_update_quota(self, **kwargs):
+        """
+        Updates value/values in quota set
+
+        @keyword values: A Dict containing the new key/value for quota set
+        @type    values: C{dict}
+        """
+        tenant_id = self._get_tenant_id()
+
+        quota_values = kwargs.get('values',{})
+        if not quota_values.has_key('tenant_id'):
+            #Include tenant_id if not already passed
+            quota_values['tenant_id'] = tenant_id
+        body = {'quota_set': quota_values}
+        server_resp = self.connection.request('/os-quota-sets/%s' % tenant_id,
+                                              method='PUT',
+                                              data=body)
+        try:
+            quota_obj = server_resp.object
+            return (server_resp.status == 200, quota_obj)
+        except Exception, e:
+            logger.exception("Exception occured creating quota. Body:%s"
+                             % body)
+            return (False, None)
+
     #Volumes
     def create_volume(self, **kwargs):
         """
@@ -792,16 +832,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             raise
 
     #API Limits
-    def ex_get_quota(self):
-        if not self.connection.request_path:
-            try:
-                #Will fail,but we MUST make a request to authenticate
-                self.connection.request('')
-            except:
-                pass
-        tenant_id = self.connection.request_path.split('/')[-1]
-        return self.connection.request("/os-quota-sets/%s" % tenant_id).object
-
     def ex_get_limits(self):
         """
         _to_rate and _to_absolute
@@ -890,6 +920,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             node, {'public_ip': floating_ip['floating_ip_address']},
             replace_metadata=False)
         return floating_ip
+
+    def _update_node(self, node, **node_updates):
+        """
+        OVERRIDES original implementation!
+        This update will NOT replace all metadata on the server/node
+        """
+        return self.ex_set_metadata(node, node_updates, replace_metadata=False)
 
     def ex_delete_ports(self, node, *args, **kwargs):
         """
