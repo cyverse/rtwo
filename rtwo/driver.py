@@ -320,7 +320,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
             # Django.contrib.auth.models.User
             username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
-        server_atmo_init = "/init_files/30/atmo-init-full.py"
+        server_atmo_init = "/init_files/30/atmo_init_full.py"
         script_init = ScriptDeployment(
             'if [ ! -d "/var/log/atmo" ];then\n'
             'mkdir -p /var/log/atmo\n'
