@@ -358,7 +358,7 @@ class IRODSDriver(StorageDriver):
     def delete_object(self, obj):
         object_path = self._get_object_path(obj.container, obj.name)
         try:
-            self.connection.session.data_objects.delete(object_path)
+            self.connection.session.data_objects.unlink(object_path)
             return True
         except DataObjectDoesNotExist:
             raise ObjectDoesNotExistError(value=None, driver=self,

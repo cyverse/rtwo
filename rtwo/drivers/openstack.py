@@ -314,7 +314,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         while time.time() < end:
             try:
-                ssh_client.connect()
+                ssh_client.connect(ignore_hosts=True)
             except (IOError, socket.gaierror, socket.error):
                 # Retry if a connection is refused or timeout
                 # occurred
@@ -359,7 +359,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @type       node: C{Node}
 
         @keyword    ssh_client: A configured and connected SSHClient instance
-        @type       ssh_client: C{SSHClient}
+        @type       ssh_client: C{SSHClientunlink
 
         @keyword    max_tries: How many times to retry if a deployment fails
                                before giving up (default is 3)
