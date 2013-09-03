@@ -29,6 +29,27 @@ setuptools.setup(
     license="Apache License, Version 2.0",
     url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
     packages=setuptools.find_packages(),
+    dependency_links=[
+        "git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient",
+        "git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient",
+        "git://github.com/openstack/python-novaclient.git#egg=python-novaclient",
+        "git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient",
+        "git://github.com/iPlantCollaborativeOpenSource/pycommands.git#egg=pycommands",
+        "git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive",
+        "git://github.com/jmatt/threepio.git#egg=threepio"
+    ],
+    install_requires=[
+        "apache-libcloud==0.12.4",
+        "httplib2==0.8",
+        "paramiko==1.11.0",
+        "python-glanceclient>=0.10.0",
+        "python-keystoneclient>=0.3.2",
+        "python-novaclient>=2.14.1",
+        "python-neutronclient>=2.2.6",
+        "pycommands>=0.0",
+        "rfive>=0.1.4",
+        "threepio>=0.1.2",
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
