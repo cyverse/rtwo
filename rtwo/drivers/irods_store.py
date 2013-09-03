@@ -34,17 +34,19 @@ class IRODSConnection(ConnectionUserAndKey):
         self.zone = zone
 
 
-    def connect(self, host=None, port=None, base_url=None):
+    def connect(self, host=None, port=None, base_url=None, client_user=None,
+            client_zone=None):
         if not host:
             host = self.host
         if not port:
             port = self.port
         session = iRODSSession(host=host, port=port,
                                   user=self.user_id, password=self.key,
-                                  zone=self.zone)
+                                  zone=self.zone, client_user=client_user,
+                                  client_zone=client_zone)
         self.session = session
         return session
-       
+
     def listdir(self, collection):
         """
         Expects an iRODSCollection
@@ -85,7 +87,8 @@ class IRODSDriver(StorageDriver):
     hash_type = 'md5'
     connectionCls = IRODSConnection
 
-    def __init__(self, key, secret=None, host=None, port=None, zone=None, base_path=None, **kwargs):
+    def __init__(self, key, secret=None, host=None, port=None, zone=None,
+                 client_user=None, client_zone=None, base_path=None, **kwargs):
         self.key = key
         self.secret = secret
         self.zone = zone
