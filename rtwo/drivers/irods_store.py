@@ -26,12 +26,16 @@ class IRODSConnection(ConnectionUserAndKey):
     iRODS connection that accepts user_id and key
     """
 
-    def __init__(self, username, password, host, port, zone, **kwargs):
+    def __init__(self, username, password, host, port, zone, client_user=None,
+                 client_zone=None, **kwargs):
         self.user_id = username
         self.key = password
         self.host = host
         self.port = port
         self.zone = zone
+        if client_user:
+            self.client_user = client_user
+            self.client_zone = client_zone if client_zone else zone
 
 
     def connect(self, host=None, port=None, base_url=None, client_user=None,
@@ -111,7 +115,8 @@ class IRODSDriver(StorageDriver):
             **self._ex_connection_class_kwargs())
 
         self.connection.driver = self
-        self.connection.connect()
+        self.connection.connect(client_user=client_user,
+                                client_zone=client_zone)
 
     def iterate_containers(self):
         """
