@@ -136,13 +136,15 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
     Provides direct access to the libcloud methods and data.
     """
 
-    def __init__(self, provider, identity):
+    def __init__(self, provider, identity, **provider_credentials):
         if provider is None or identity is None:
             raise MissingArgsException(
                 'LibcloudDriver is Missing Required Identity and/or Provider.')
         self.identity = identity
         self.provider = provider
-        self._connection = self.provider.get_driver(self.identity)
+        self._connection = self.provider.get_driver(
+                                            self.identity,
+                                            **provider_credentials)
 
     def list_instances(self, *args, **kwargs):
         return self._connection.list_nodes()
@@ -192,8 +194,8 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def settings_init(cls):
         raise ServiceException('Settings init not available for this class')
 
-    def __init__(self, provider, identity):
-        super(EshDriver, self).__init__(provider, identity)
+    def __init__(self, provider, identity, **provider_credentials):
+        super(EshDriver, self).__init__(provider, identity, **provider_credentials)
         if not(isinstance(provider, self.providerCls)
            and isinstance(identity, self.identityCls)):
             raise ServiceException('Wrong Provider or Identity')
@@ -278,7 +280,40 @@ class OSDriver(EshDriver, InstanceActionMixin):
     identityCls = OSIdentity
 
     @classmethod
+    def admin_init(cls, id_credentials, prov_credentials):
+        """
+        To be used instead of settings_init, Expects the following keys for
+        each credentials dict:
+        id_credentials:
+        * Username
+        * Password
+        * (Tenant/Project) Name
+        Prov_credentials:
+        * region_name
+        * auth_url
+        """
+        try:
+            username = id_credentials.pop('username')
+            password = id_credentials.pop('password')
+            tenant_name = id_credentials.pop('tenant_name')
+        except:
+            raise ServiceException(
+                'Settings init not available for this class:'
+                'Expected settings.OPENSTACK_ARGS with'
+                'username/password/tenant_name fields')
+        OSProvider.set_meta()
+        provider = OSProvider()
+        identity = OSIdentity(provider, username, password,
+                              ex_tenant_name=tenant_name,
+                              **prov_credentials)
+        driver = cls(provider, identity)
+        return driver
+
+    @classmethod
     def settings_init(cls):
+        """
+        DEPRECATED:
+        """
         os_args = copy.deepcopy(settings.OPENSTACK_ARGS)
         try:
             username = os_args.pop('username')
@@ -297,12 +332,13 @@ class OSDriver(EshDriver, InstanceActionMixin):
         driver = cls(provider, identity)
         return driver
 
-    def __init__(self, provider, identity):
-        super(OSDriver, self).__init__(provider, identity)
+    def __init__(self, provider, identity, **provider_credentials):
+        logger.warn('provider_credentials = %s' % provider_credentials)
+        super(OSDriver, self).__init__(provider, identity, **provider_credentials)
+        #Set connection && force_service_region
         self._connection._ex_force_service_region =\
-            settings.OPENSTACK_DEFAULT_REGION
         self._connection.connection.service_region =\
-            settings.OPENSTACK_DEFAULT_REGION
+            provider.options.get('region_name')
 
     def deploy_init_to(self, *args, **kwargs):
         """

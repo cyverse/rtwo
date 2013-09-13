@@ -76,18 +76,32 @@ class Provider(BaseProvider):
         :param url: url to use for this provider.
         """
         if url:
-            self.parse_url(kwargs['url'])
+            self.options.update(Provider.parse_url(kwargs['url']))
 
+    def set_options(self, provider_credentials):
+        """
+        Get provider specific options.
+
+        Return provider specific options in a dict.
+        """
+        self.options = {}
+        self.options.update(provider_credentials)
+        self.options.update(self.identity.credentials)
+        return self.options
+
+    @classmethod
     def parse_url(self, url):
         """
         Parse the url into the options dictionary.
         """
         from urlparse import urlparse
         urlobj = urlparse(url)
-        self.options['host'] = urlobj.hostname
-        self.options['port'] = urlobj.port
-        self.options['path'] = urlobj.path
-        self.options['secure'] = urlobj.scheme == 'https'
+        options = {}
+        options['host'] = urlobj.hostname
+        options['port'] = urlobj.port
+        options['path'] = urlobj.path
+        options['secure'] = urlobj.scheme == 'https'
+        return options
 
     def provider_id(self):
         try:
@@ -117,17 +131,18 @@ class AWSProvider(Provider):
         cls.volumeCls = AWSVolume
         cls.metaCls = AWSMeta
 
-    def set_options(self):
+    def set_options(self, provider_credentials):
         """
         Get provider specific options.
 
         Return provider specific options in a dict.
         """
-        self.options = {}  # clear the options
+        self.options = {}
+        self.options.update(provider_credentials)
         self.options.update(self.identity.credentials)
         return self.options
 
-    def get_driver(self, identity):
+    def get_driver(self, identity, **provider_credentials):
         """
         Get the libcloud driver using our service identity.
 
@@ -135,7 +150,7 @@ class AWSProvider(Provider):
         """
         self.identity = identity
         self.lc_driver = Esh_EC2NodeDriver
-        self.set_options()
+        self.set_options(provider_credentials)
         return self.lc_driver(key=self.options['key'],
                               secret=self.options['secret'])
 
@@ -171,31 +186,35 @@ class EucaProvider(Provider):
         cls.volumeCls = EucaVolume
         cls.metaCls = EucaMeta
 
-    def set_options(self):
+    def set_options(self, provider_credentials):
         """
         Get provider specific credentials.
 
         Return any provider specific credentials in a dict.
         """
-        self.options = {'secure': 'False',
-                        'host': '128.196.172.136',
+        self.options = {'host': '128.196.172.136',
+                        'secure': False,
                         'port': 8773,
                         'path': '/services/Eucalyptus'}
+        # Options default to provider
+        self.options.update(provider_credentials)
         self.options.update(self.identity.credentials)
         return self.options
 
-    def get_driver(self, identity):
+    def get_driver(self, identity, **provider_credentials):
         """
         Get the libcloud driver using our service identity.
 
         Return the libcloud.compute driver class.
         """
-        self.identity = identity
         self.lc_driver = Eucalyptus_Esh_NodeDriver
-        self.set_options()
+
+        self.identity = identity
+        self.set_options(provider_credentials)
+
         return self.lc_driver(key=self.options['key'],
                               secret=self.options['secret'],
-                              secure=self.options['secure'] != 'False',
+                              secure=self.options['secure'] != False,
                               host=self.options['host'],
                               port=self.options['port'],
                               path=self.options['path'])
@@ -222,7 +241,7 @@ class OSProvider(Provider):
         cls.volumeCls = OSVolume
         cls.metaCls = OSMeta
 
-    def set_options(self):
+    def set_options(self, provider_credentials):
         """
         Get provider specific options.
 
@@ -232,10 +251,11 @@ class OSProvider(Provider):
                         'ex_force_auth_version': '2.0_password',
                         'ex_force_auth_url':
                         'http://heimdall.iplantcollaborative.org:5000/v2.0'}
+        self.options.update(provider_credentials)
         self.options.update(self.identity.credentials)
         return self.options
 
-    def get_driver(self, identity):
+    def get_driver(self, identity, **provider_credentials):
         """
         Get the libcloud driver using our service identity.
 
@@ -243,7 +263,7 @@ class OSProvider(Provider):
         """
         self.identity = identity
         self.lc_driver = OpenStack_Esh_NodeDriver
-        self.set_options()
+        self.set_options(provider_credentials)
         return self.lc_driver(key=self.options['key'],
                               secret=self.options['secret'],
                               secure=self.options['secure'] != 'False',
@@ -259,23 +279,17 @@ class OSValhallaProvider(OSProvider):
 
     region_name = "ValhallaRegion"
 
-    def set_options(self):
+    def set_options(self, provider_credentials):
         """
         """
-        super(OSValhallaProvider, self).set_options()
-        self.options['ex_force_auth_url'] =\
-            'http://heimdall.iplantcollaborative.org:5000/v2.0'
-        self.options.update(self.identity.credentials)
+        super(OSValhallaProvider, self).set_options(provider_credentials)
 
 
 class OSMidgardProvider(OSProvider):
 
     region_name = "MidgardRegion"
 
-    def set_options(self):
+    def set_options(self, provider_credentials):
         """
         """
-        super(OSMidgardProvider, self).set_options()
-        self.options['ex_force_auth_url'] =\
-            'http://hnoss.iplantcollaborative.org:5000/v2.0'
-        self.options.update(self.identity.credentials)
+        super(OSMidgardProvider, self).set_options(provider_credentials)
