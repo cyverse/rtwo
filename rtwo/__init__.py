@@ -2,6 +2,10 @@
 
 """
 try:
+    import libcloud.security
+    libcloud.security.VERIFY_SSL_CERT = False
+    libcloud.security.VERIFY_SSL_CERT_STRICT = False
+
     from . import settings
     from . import driver
     from . import identity
@@ -12,4 +16,4 @@ try:
     initialize()
 except ImportError:
     #This is normal on first-install..
-    pass 
+    pass
