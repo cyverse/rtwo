@@ -35,7 +35,7 @@ setuptools.setup(
         "git://github.com/openstack/python-novaclient.git#egg=python-novaclient",
         "git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient",
         "git://github.com/iPlantCollaborativeOpenSource/pycommands.git#egg=pycommands-0.0",
-        "git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive",
+        "git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4",
         "git://github.com/jmatt/threepio.git#egg=threepio"
     ],
     install_requires=[
