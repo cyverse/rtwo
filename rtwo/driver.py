@@ -614,10 +614,6 @@ class EucaDriver(EshDriver):
 
     identityCls = EucaIdentity
 
-    def __init__(self, provider, identity, **provider_credentials):
-        logger.warn('provider_credentials = %s' % provider_credentials)
-        super(OSDriver, self).__init__(provider, identity, **provider_credentials)
-
     def deploy_instance(self, *args, **kwargs):
         raise NotImplementedError
 

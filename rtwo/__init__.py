@@ -11,9 +11,9 @@ try:
     from . import identity
     from . import provider
     from . import meta
-    from .compute import initialize
-
-    initialize()
+    #TODO: Migrating back to atmosphere
+    #from .compute import initialize
+    #initialize()
 except ImportError:
     #This is normal on first-install..
     pass
