@@ -140,6 +140,7 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
         if provider is None or identity is None:
             raise MissingArgsException(
                 'LibcloudDriver is Missing Required Identity and/or Provider.')
+        logger.info(provider_credentials)
         self.identity = identity
         self.provider = provider
         self._connection = self.provider.get_driver(
@@ -612,6 +613,10 @@ class EucaDriver(EshDriver):
     providerCls = EucaProvider
 
     identityCls = EucaIdentity
+
+    def __init__(self, provider, identity, **provider_credentials):
+        logger.warn('provider_credentials = %s' % provider_credentials)
+        super(OSDriver, self).__init__(provider, identity, **provider_credentials)
 
     def deploy_instance(self, *args, **kwargs):
         raise NotImplementedError

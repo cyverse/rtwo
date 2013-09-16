@@ -90,7 +90,7 @@ class Provider(BaseProvider):
         return self.options
 
     @classmethod
-    def parse_url(self, url):
+    def parse_url(cls, url):
         """
         Parse the url into the options dictionary.
         """
