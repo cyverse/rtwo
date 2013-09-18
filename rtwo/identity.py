@@ -29,7 +29,7 @@ class BaseIdentity(object):
 
 class Identity(BaseIdentity):
 
-    def __init__(self, provider, key, secret, user=None, **kwargs):
+    def __init__(self, provider, key=None, secret=None, user=None, **kwargs):
         if issubclass(type(provider), self.provider):
             self.providers.append(provider)
         else:
