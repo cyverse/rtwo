@@ -33,6 +33,7 @@ class Meta(BaseMeta):
         self._driver = driver._connection
         self.user = driver.identity.user
         self.provider = driver.provider
+        self.provider_options = driver.provider.options
         self.identity = driver.identity
         self.driver = driver
         self.admin_driver = self.create_admin_driver()
@@ -137,12 +138,13 @@ class OSMeta(Meta):
 
     def create_admin_driver(self):
         admin_provider = OSProvider()
+        provider_creds = self.provider_options
         admin_identity = OSIdentity(admin_provider,
                                     settings.OPENSTACK_ADMIN_KEY,
                                     settings.OPENSTACK_ADMIN_SECRET,
                                     ex_tenant_name=
                                     settings.OPENSTACK_ADMIN_TENANT)
-        admin_driver = OSDriver(admin_provider, admin_identity)
+        admin_driver = OSDriver(admin_provider, admin_identity, **provider_creds)
         return admin_driver
 
     def occupancy(self):
