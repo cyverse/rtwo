@@ -36,7 +36,7 @@ setuptools.setup(
         "git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient",
         "git+git://github.com/iPlantCollaborativeOpenSource/pycommands.git#egg=pycommands-0.1",
         "git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4",
-        "git+git://github.com/jmatt/threepio.git#egg=threepio"
+        "git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2"
     ],
     install_requires=[
         "apache-libcloud==0.12.4",
