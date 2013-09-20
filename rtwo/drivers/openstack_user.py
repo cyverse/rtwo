@@ -58,7 +58,7 @@ class UserManager():
         created_role = self.add_project_member(projectname, username, userrole)
         return created_role
 
-    def add_protcol_to_group(self, nova, protocol, security_group):
+    def add_protocol_to_group(self, nova, protocol, security_group):
         """
         Add a security group rule if it doesn't already exist.
         """
@@ -73,14 +73,13 @@ class UserManager():
 
     def build_security_group(self, username, password, project_name,
             protocol_list, securitygroup_name='default', *args, **kwargs):
-        #TODO: this should be a connect_to_nova
+
         converted_kwargs = {
             'username':username,
             'password':password,
             'tenant_name':project_name,
             'auth_url':self.nova.client.auth_url,
             'region_name':self.nova.client.region_name}
-
         nova = _connect_to_nova(*args, **converted_kwargs)
         nova.client.region_name = self.nova.client.region_name
         sec_group = nova.security_groups.find(name=securitygroup_name)
@@ -147,7 +146,7 @@ class UserManager():
         }
         if project:
             if self.keystone_version() == 3:
-                account_data['project'] = groupname
+                account_data['project'] = project.name
             elif self.keystone_version() == 2:
                 account_data['tenant_id'] = project.id
         return self.keystone.users.create(**account_data)
