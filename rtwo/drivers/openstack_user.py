@@ -41,6 +41,22 @@ class UserManager():
         nova = _connect_to_nova(*args, **kwargs)
         return keystone, nova
 
+    def build_nova(self, username, password, project_name, *args, **kwargs):
+        """
+        Ocassionally you will need the 'user nova' instead of admin nova.
+        This function will build a 'proper' nova given credentials.
+        """
+        converted_kwargs = {
+            'username':username,
+            'password':password,
+            'tenant_name':project_name,
+            'auth_url':self.nova.client.auth_url,
+            'region_name':self.nova.client.region_name}
+        #TODO: Update w/ kwargs..
+        nova = _connect_to_nova(*args, **converted_kwargs)
+        nova.client.region_name = self.nova.client.region_name
+        return nova
+
     def add_role(username, projectname, userrole, adminrole='admin'):
 
 
@@ -58,41 +74,100 @@ class UserManager():
         created_role = self.add_project_member(projectname, username, userrole)
         return created_role
 
-    def add_protocol_to_group(self, nova, protocol, security_group):
+    def build_security_group(self, username, password, project_name,
+            protocol_list, securitygroup_name='default', rebuild=False, *args, **kwargs):
+        """
+        Given a working set of credentials and a list of protocols
+
+        Find the security group and ensure each rule is 'covered' by the
+        existing set of rules. If not, add a new rule to cover this case.
+
+        rebuild: If True, delete all rules before adding rules in protocol_list
+        """
+
+        sec_group = self.find_security_group(
+                username, password, project_name, securitygroup_name)
+
+        if not sec_group:
+            raise Exception("No security group named %s found for %s"
+                        % (securitygroup_name, username))
+
+        if rebuild:
+            rule_ids = [rule['id'] for rule in sec_group.rules]
+            self.delete_security_group_rules(
+                username, password, project_name, securitygroup_name, rule_ids)
+
+
+        # Add the rule, grab updated security group
+        self.add_security_group_rules(
+            username, password, project_name, securitygroup_name, protocol_list)
+
+        sec_group = self.find_security_group(
+                username, password, project_name, securitygroup_name)
+        return sec_group
+
+    def delete_security_group_rules(self, username, password, project_name,
+            securitygroup_name, rules):
+        """
+        rules - a list of rules in the form:
+                [rule_id1, rule_id2, rule_id3, ...]
+        """
+        nova = self.build_nova(username, password, project_name)
+        sec_group = nova.security_groups.find(name=securitygroup_name)
+        for rule_id in rules:
+            nova.security_group_rules.delete(rule_id)
+
+    def add_security_group_rules(self, username, password, project_name,
+            securitygroup_name, rule_list):
+        """
+        rules - a list of rules in the form:
+                [(protocol, from_port, to_port, [CIDR]),
+                 ...]
+        """
+        nova = self.build_nova(username, password, project_name)
+        sec_group = nova.security_groups.find(name=securitygroup_name)
+        for protocol in rule_list:
+            self.add_rule_to_group(nova, protocol, sec_group)
+
+    def add_rule_to_group(self, nova, protocol, security_group):
         """
         Add a security group rule if it doesn't already exist.
         """
-        (ip_protocol, from_port, to_port) = protocol
+        if len(protocol) == 3:
+            (ip_protocol, from_port, to_port) = protocol
+            cidr = None
+        elif len(protocol) == 4:
+            (ip_protocol, from_port, to_port, cidr) = protocol
+        else:
+            raise Exception("Rule tuple did not match expected output:"
+                            " (protocol, from_port, to_port, [CIDR])")
+        
         if not self.find_rule(security_group, ip_protocol,
                           from_port, to_port):
             nova.security_group_rules.create(security_group.id,
                                              ip_protocol=ip_protocol,
                                              from_port=from_port,
-                                             to_port=to_port)
+                                             to_port=to_port,
+                                             cidr=cidr)
         return True
 
-    def build_security_group(self, username, password, project_name,
-            protocol_list, securitygroup_name='default', *args, **kwargs):
 
-        converted_kwargs = {
-            'username':username,
-            'password':password,
-            'tenant_name':project_name,
-            'auth_url':self.nova.client.auth_url,
-            'region_name':self.nova.client.region_name}
-        nova = _connect_to_nova(*args, **converted_kwargs)
-        nova.client.region_name = self.nova.client.region_name
-        sec_group = nova.security_groups.find(name=securitygroup_name)
-
-        for protocol in protocol_list:
-            self.add_protocol_to_group(nova, protocol, sec_group)
+    def find_security_group(self, username, password, project_name,
+                            securitygroup_name):
+        nova = self.build_nova(username, password, project_name)
         return nova.security_groups.find(name=securitygroup_name)
 
+
+    def list_security_groups(self, username, password, project_name):
+        nova = self.build_nova(username, password, project_name)
+        sec_groups = nova.security_groups.list()
+        return sec_groups
+
     def find_rule(self, security_group, ip_protocol, from_port, to_port):
-        for r in security_group.rules:
-            if r['from_port'] == from_port\
-            and r['to_port'] == to_port\
-            and r['ip_protocol'] == ip_protocol:
+        for rule in security_group.rules:
+            if rule['from_port'] <= from_port\
+            and rule['to_port'] >= to_port\
+            and rule['ip_protocol'] == ip_protocol:
                 return True
         return False
 
