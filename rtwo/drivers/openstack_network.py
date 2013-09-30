@@ -58,6 +58,13 @@ class NetworkManager(object):
         auth_url = kwargs.get('auth_url')
         region_name = kwargs.get('region_name')
         router_name = kwargs.get('router_name')
+        # Step 1. Does public router exist?
+        public_router = self.find_router(router_name)
+        if public_router:
+            public_router = public_router[0]
+        else:
+            raise Exception("Default public router was not found.")
+        # Step 2. Set up user-specific virtual network
         user_creds = {
             'username': username,
             'password': password,
@@ -76,11 +83,6 @@ class NetworkManager(object):
                                          username,
                                          get_unique_number=get_unique_number,
                                          get_cidr=get_default_subnet)
-        public_router = self.find_router(router_name)
-        if public_router:
-            public_router = public_router[0]
-        else:
-            raise Exception("Default public router was not found.")
         #self.create_router(user_neutron, '%s-router' % project_name)
         self.add_router_interface(public_router,
                                   subnet)

@@ -4,7 +4,7 @@ Current logger version.
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
-VERSION = (0, 1, 6, 'dev', 0)
+VERSION = (0, 1, 7, 'dev', 0)
 
 def git_sha():
     loc = abspath(dirname(__file__))
