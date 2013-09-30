@@ -34,6 +34,7 @@ nosetests.xml
 .project
 .pydevproject
 
+*.log
 logs/*
 scripts/*
 rtwo/test_settings.py
