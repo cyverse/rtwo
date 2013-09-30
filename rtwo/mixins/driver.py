@@ -17,7 +17,7 @@ class APIFilterMixin():
         try:
             volume_list = self.list_volumes()
             volume = filter(lambda volume:
-                            alias in volume.alias, volume_list)[0]
+                            alias == volume.alias, volume_list)[0]
             return volume
         except IndexError:
             return None
@@ -26,7 +26,7 @@ class APIFilterMixin():
         try:
             size_list = self.list_sizes()
             size = filter(lambda size:
-                          alias in size.id, size_list)[0]
+                          alias == size.id, size_list)[0]
             return size
         except IndexError:
             return None
@@ -35,7 +35,7 @@ class APIFilterMixin():
         try:
             instance_list = self.list_instances()
             instance = filter(lambda instance:
-                              alias in instance.alias, instance_list)[0]
+                              alias == instance.alias, instance_list)[0]
             return instance
         except IndexError:
             return None
@@ -44,7 +44,7 @@ class APIFilterMixin():
         try:
             machine_list = self.list_machines()
             machine = filter(lambda machine:
-                             alias in machine.alias, machine_list)[0]
+                             alias == machine.alias, machine_list)[0]
             return machine
         except IndexError:
             return None
