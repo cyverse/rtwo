@@ -56,9 +56,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "attach_volume": ["Attach volume to node"],
         "detach_volume": ["Detach volume from node"],
         "destroy_volume": ["Delete volume"],
-        "ex_create_keypair": ["Adds a keypair given the public_key and name"],
-        "ex_delete_keypair": ["Removes keypair matching name"],
-        "ex_list_keypairs": ["List all keypairs for user"],
         "ex_list_floating_ip_pools": ["List all floating IP Pools"],
         "ex_delete_ports": ["Delete all ports associated with a node"],
         "ex_allocate_floating_ip": ["Allocate floating IP"],
@@ -159,21 +156,18 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         _set_ips()
         node.extra.update({
             'addresses': api_node.get('addresses'),
-            'keypair': api_node.get('key_name'),
             'status': api_node.get('status').lower(),
             'task': api_node.get('OS-EXT-STS:task_state'),
             'power': api_node.get('OS-EXT-STS:power_state'),
-            'instancetype': api_node['flavor']['id'],
-            #'object': api_node
+            'object': api_node
         })
         return node
 
     def create_node(self, **kwargs):
-        self._add_keypair(kwargs)
-        kwargs.update({
-            'ex_keyname': unicode(self.key),
-        })
-
+        """
+        Helpful arguments to set:
+        ex_keyname : Name of existing public key
+        """
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
         #NOTE: This line is needed to authenticate via SSH_Keypair instead!
@@ -593,53 +587,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET')
         return server_resp.object
 
-    #Keypairs
-    def ex_create_keypair(self, **kwargs):
-        """
-        Create a new keypair
-
-        @keyword public_key: The string containing the entire public key
-        @type    public_key: C{str}
-
-        @keyword name: The name of the new keypair
-        @type    name: C{str}
-        """
-        name = kwargs.get('name', '')
-        public_key = kwargs.get('public_key', '')
-        logger.debug("name = %s public_key = %s" % (name, public_key))
-        data = {"keypair":
-               {"name": unicode(name),
-                "public_key": unicode(public_key)
-                }
-                }
-        server_resp = self.connection.request('/os-keypairs',
-                                              method='POST',
-                                              data=data)
-        try:
-            return (server_resp.status == 200,
-                    server_resp.object['keypair']['fingerprint'])
-        except Exception, e:
-            logger.exception("Exception occured creating keypair")
-            return (False, None)
-
-    def ex_delete_keypair(self, **kwargs):
-        """
-        Delete an existing keypair
-        """
-        try:
-            server_resp = self.connection.request(
-                '/os-keypairs/%s' % kwargs.get('name', ''),
-                method='DELETE')
-            return server_resp.status == 202
-        except Exception, e:
-            logger.exception("Exception occured deleting keypair")
-            return (False, None)
-
-    def ex_list_keypairs(self):
-        def _to_keypairs(el):
-            return [keypair['keypair'] for keypair in el['keypairs']]
-        return _to_keypairs(self.connection.request("/os-keypairs").object)
-
     def ex_hypervisor_statistics(self):
         return self.connection.request(
             "/os-hypervisors/statistics").object['hypervisor_statistics']
@@ -864,28 +811,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     While these methods are useful,
     they will NOT be included when we push back to libcloud..
     """
-    def _get_or_create_keypair(self, name, public_key):
-        keypairs = self.ex_list_keypairs()
-        for keypair in keypairs:
-            if unicode(keypair['name']) == unicode(name):
-                return keypair
-        return self.ex_create_keypair(tenant_id=name,
-                                      name=name,
-                                      public_key=public_key)
-
-    def _add_keypair(self, kwargs):
-        """
-        #TODO: Make this a generic kwarg that is POPed
-        from the list (key_location, key_file, etc.)
-        """
-        kwargs.update({'ex_keyname': unicode(self.key)})
-        public_key = open("/opt/dev/atmosphere/extras/ssh/id_rsa.pub",
-                          "r").read()
-        keypair = self._get_or_create_keypair(name=unicode(self.key),
-                                              public_key=public_key)
-        if not keypair:
-            logger.warn("No keypair for %s" % identity.json())
-
     def _add_floating_ip(self, node, *args, **kwargs):
         """
         Add IP (Neutron)

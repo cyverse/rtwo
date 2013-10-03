@@ -30,6 +30,7 @@ setuptools.setup(
     url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
     packages=setuptools.find_packages(),
     dependency_links=[
+        "git+git://github.com/apache/libcloud.git#egg=apache-libcloud-0.14.0-dev",
         "git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient",
         "git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient",
         "git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient",
@@ -39,7 +40,7 @@ setuptools.setup(
         "git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2"
     ],
     install_requires=[
-        "apache-libcloud==0.12.4",
+        "apache-libcloud>=0.14",
         "httplib2==0.8",
         "paramiko==1.11.0",
         "python-glanceclient>=0.10.0",
