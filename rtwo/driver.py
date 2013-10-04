@@ -211,8 +211,9 @@ class EshDriver(LibcloudDriver, MetaMixin):
         """
         Return the MachineClass representation of a libcloud NodeImage
         """
-        return self.provider.machineCls.get_machines(
-            super(EshDriver, self).list_machines)
+        return self.provider.machineCls.get_cached_machines(
+            self.provider.identifier,
+            super(EshDriver, self).list_machines, *args, **kwargs)
 
     def list_sizes(self, *args, **kwargs):
         """

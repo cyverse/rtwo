@@ -6,6 +6,7 @@ from abc import ABCMeta
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 
+from threepio import logger
 
 class BaseMachine(object):
     __metaclass__ = ABCMeta
@@ -44,23 +45,45 @@ class Machine(BaseMachine):
     @classmethod
     def create_machine(cls, provider, lc_image):
         machine = provider.machineCls(lc_image)
-        alias = machine.id
-        cls.machines[(provider.name, alias)] = machine
+        cls.add_to_cache(provider, machine)
         return machine
 
     @classmethod
-    def get_machine(cls, lc_image):
-        alias = lc_image.id
-        if cls.machines.get((cls.provider.name, alias)):
-            return cls.machines[(cls.provider.name, alias)]
-        else:
-            return cls.create_machine(cls.provider, lc_image)
+    def add_to_cache(cls, provider, machine):
+        alias = machine.id
+        machine_dict = cls.machines.get(provider.identifier, {})
+        machine_dict[alias] = machine
+        cls.machines[provider.identifier] = machine_dict
 
     @classmethod
-    def get_machines(cls, lc_list_images_method, *args, **kwargs):
-        if not cls.machines or not cls.lc_images:
+    def get_cached_machine(cls, lc_image):
+        alias = lc_image.id
+        #logger.info(cls.provider)
+        #logger.info(cls.provider.location)
+        identifier = cls.provider.identifier
+        provider_machines = cls.machines.get(identifier)
+        if not provider_machines:
+            logger.info("Created new machine dict for provider %s" % identifier)
+            provider_machines = {}
+        machine = provider_machines.get(alias)
+        if machine:
+            logger.info("Found machine for provider:%s - %s" %
+                (identifier, machine))
+            return machine
+        return cls.create_machine(cls.provider, lc_image)
+
+    @classmethod
+    def get_cached_machines(cls, identifier, lc_list_images_method, *args, **kwargs):
+        """
+        Identifier - Used to identify the specific provider being used:
+        ex: "iPlant Eucalyptus", "Openstack 1", "Openstack 2"
+        If using only one provider, this variable can be set to any value.
+        """
+        provider_machines = cls.machines.get(identifier)
+        if not provider_machines or not cls.lc_images:
+            #Add new provider to the cache
             cls.lc_images = lc_list_images_method(*args, **kwargs)
-        return map(cls.get_machine, cls.lc_images)
+        return map(cls.get_cached_machine, cls.lc_images)
 
     def reset(self):
         Machine.reset()

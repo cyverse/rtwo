@@ -40,6 +40,9 @@ class BaseProvider(object):
 
     options = {}
 
+    #Used to support multi-cloud
+    identifier = ''
+
     location = ''
 
     name = ''
@@ -71,12 +74,16 @@ class BaseProvider(object):
 
 class Provider(BaseProvider):
 
-    def __init__(self, url=None):
+    def __init__(self, url=None, identifier=None):
         """
         :param url: url to use for this provider.
         """
         if url:
             self.options.update(Provider.parse_url(kwargs['url']))
+        if not identifier:
+            identifier = self.location
+        self.identifier = identifier
+        logger.info("identifier set to : %s" % identifier)
 
     def set_options(self, provider_credentials):
         """
@@ -169,7 +176,8 @@ class EucaProvider(Provider):
 
     name = 'Eucalyptus'
 
-    location = 'EUCALYPTUS'  # This need to be in all caps to match lib cloud.
+    # This need to be in all caps to match lib cloud.
+    location = 'EUCALYPTUS'
 
     @classmethod
     def set_meta(cls):

@@ -40,7 +40,7 @@ setuptools.setup(
         "git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2"
     ],
     install_requires=[
-        "apache-libcloud>=0.14",
+        "apache-libcloud>=0.14.0-dev",
         "httplib2==0.8",
         "paramiko==1.11.0",
         "python-glanceclient>=0.10.0",
