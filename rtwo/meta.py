@@ -29,18 +29,21 @@ class Meta(BaseMeta):
 
     metas = {}
 
-    def __init__(self, driver):
+    def __init__(self, driver, admin_driver=None):
         self._driver = driver._connection
         self.user = driver.identity.user
         self.provider = driver.provider
         self.provider_options = driver.provider.options
         self.identity = driver.identity
         self.driver = driver
-        self.admin_driver = self.create_admin_driver()
+        if not admin_driver:
+            self.admin_driver = self.create_admin_driver({})
+        else:
+            self.admin_driver = admin_driver
 
     @classmethod
-    def create_meta(cls, driver):
-        meta = driver.provider.metaCls(driver)
+    def create_meta(cls, driver, admin_driver=None):
+        meta = driver.provider.metaCls(driver, admin_driver)
         cls.metas[(driver.provider, driver.identity)] = meta
         return meta
 
@@ -63,7 +66,19 @@ class Meta(BaseMeta):
     def test_links(self):
         return active_instances(self.driver.list_instances())
 
-    def create_admin_driver(self):
+    def _split_creds(self, creds, default_key,
+                     default_secret, default_tenant=None):
+        key = creds.get('key', default_key)
+        secret = creds.get('secret', default_secret)
+        # Use the project or tenant name.
+        tenant = creds.get('ex_project_name',
+                           creds.get('ex_tenant_name', default_tenant))
+        if tenant:
+            return (key, secret, tenant)
+        else:
+            return (key, secret)
+
+    def create_admin_driver(self, creds=None):
         raise NotImplementedError
 
     def all_instances(self):
@@ -99,7 +114,7 @@ class AWSMeta(Meta):
 
     provider = AWSProvider
 
-    def create_admin_driver(self):
+    def create_admin_driver(self, creds=None):
         if not hasattr(settings, 'AWS_KEY'):
             return self.driver
         logger.debug(self.provider)
@@ -118,10 +133,11 @@ class EucaMeta(Meta):
 
     provider = EucaProvider
 
-    def create_admin_driver(self):
-        identity = EucaIdentity(self.provider,
-                                settings.EUCA_ADMIN_KEY,
-                                settings.EUCA_ADMIN_SECRET)
+    def create_admin_driver(self, creds=None):
+        key, secret = self._split_creds(creds,
+                                        settings.EUCA_ADMIN_KEY,
+                                        settings.EUCA_ADMIN_SECRET)
+        identity = EucaIdentity(self.provider, key, secret)
         driver = EucaDriver(self.provider, identity)
         return driver
 
@@ -136,15 +152,21 @@ class OSMeta(Meta):
 
     provider = OSProvider
 
-    def create_admin_driver(self):
+    def create_admin_driver(self, creds=None):
         admin_provider = OSProvider()
         provider_creds = self.provider_options
+        key, secret, tenant =\
+            self._split_creds(creds,
+                              settings.OPENSTACK_ADMIN_KEY,
+                              settings.OPENSTACK_ADMIN_SECRET,
+                              settings.OPENSTACK_ADMIN_TENANT)
         admin_identity = OSIdentity(admin_provider,
-                                    settings.OPENSTACK_ADMIN_KEY,
-                                    settings.OPENSTACK_ADMIN_SECRET,
-                                    ex_tenant_name=
-                                    settings.OPENSTACK_ADMIN_TENANT)
-        admin_driver = OSDriver(admin_provider, admin_identity, **provider_creds)
+                                    key,
+                                    secret,
+                                    ex_tenant_name=tenant)
+        admin_driver = OSDriver(admin_provider,
+                                admin_identity,
+                                **provider_creds)
         return admin_driver
 
     def occupancy(self):
@@ -157,7 +179,7 @@ class OSMeta(Meta):
         sizes = self.admin_driver.list_sizes()
         for size in sizes:
             max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu)\
-                if size._size.ram > 0\
+                if size._size.cpu > 0\
                 else sys.maxint
 
             max_by_ram = float(occupancy_data['memory_mb']) / \
