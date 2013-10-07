@@ -121,7 +121,6 @@ class OSInstance(Instance):
                             "deleted." % (node.id, node.extra['imageId']))
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
-                raise
         if not self.size:
             size = node.driver.ex_get_size(node.extra['flavorId'])
             self.size = self.provider.sizeCls.get_size(size)
