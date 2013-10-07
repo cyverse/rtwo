@@ -169,6 +169,17 @@ class OSMeta(Meta):
                                 **provider_creds)
         return admin_driver
 
+    def _get_max_cpu(self, esh_size, cpu_count):
+        if hasattr(esh_size._size, 'cpu'):
+            cpu_count = esh_size._size.cpu
+        elif hasattr(esh_size._size, 'vcpus'):
+            cpu_count = esh_size._size.vcpus
+        if cpu_count > 0:
+            max_by_cpu = float(cpu_count)/float(esh_size.cpu) 
+        else:
+            max_by_cpu = sys.maxint
+        return max_by_cpu
+
     def occupancy(self):
         """
         Add Occupancy data to NodeSize.extra
@@ -178,9 +189,7 @@ class OSMeta(Meta):
         all_instances = self.all_instances()
         sizes = self.admin_driver.list_sizes()
         for size in sizes:
-            max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu)\
-                if size._size.cpu > 0\
-                else sys.maxint
+            self._get_max_cpu(size, occupancy_data['vcpus'])
 
             max_by_ram = float(occupancy_data['memory_mb']) / \
                 float(size._size.ram)\
