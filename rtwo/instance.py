@@ -115,12 +115,13 @@ class OSInstance(Instance):
         if not self.machine:
             try:
                 image = node.driver.ex_get_image(node.extra['imageId'])
-                self.machine = self.provider.machineCls.get_machine(image)
+                self.machine = self.provider.machineCls.get_cached_machine(image)
             except Exception, no_image_found:
                 logger.warn("Instance %s is using an image %s that has been "
                             "deleted." % (node.id, node.extra['imageId']))
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
+                raise
         if not self.size:
             size = node.driver.ex_get_size(node.extra['flavorId'])
             self.size = self.provider.sizeCls.get_size(size)
