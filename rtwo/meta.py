@@ -169,16 +169,34 @@ class OSMeta(Meta):
                                 **provider_creds)
         return admin_driver
 
-    def _get_max_cpu(self, esh_size, cpu_count):
+    def _get_max_cpu(self, esh_size, cpu_total):
+        # CPUs go by many different, provider-specific names..
         if hasattr(esh_size._size, 'cpu'):
             cpu_count = esh_size._size.cpu
         elif hasattr(esh_size._size, 'vcpus'):
             cpu_count = esh_size._size.vcpus
+        else:
+            logger.warn("Could not find a CPU value for size %s" % esh_size)
+            cpu_count = -1
         if cpu_count > 0:
-            max_by_cpu = float(cpu_count)/float(esh_size.cpu) 
+            max_by_cpu = float(cpu_total)/float(esh_size.cpu) 
         else:
             max_by_cpu = sys.maxint
         return max_by_cpu
+
+    def _get_max_ram(self, esh_size, ram_total):
+        if esh_size._size.ram > 0:
+            max_by_ram = float(ram_total) / float(esh_size._size.ram)
+        else:
+            max_by_ram = sys.maxint
+        return max_by_ram
+
+    def _get_max_disk(self, esh_size, disk_total):
+        if esh_size._size.disk > 0:
+            max_by_disk = float(disk_total) / float(esh_size._size.disk)
+        else:
+            max_by_disk = sys.maxint
+        return max_by_disk
 
     def occupancy(self):
         """
@@ -189,17 +207,9 @@ class OSMeta(Meta):
         all_instances = self.all_instances()
         sizes = self.admin_driver.list_sizes()
         for size in sizes:
-            self._get_max_cpu(size, occupancy_data['vcpus'])
-
-            max_by_ram = float(occupancy_data['memory_mb']) / \
-                float(size._size.ram)\
-                if size._size.ram > 0\
-                else sys.maxint
-
-            max_by_disk = float(occupancy_data['local_gb']) / \
-                float(size._size.disk)\
-                if size._size.disk > 0\
-                else sys.maxint
+            max_by_cpu = self._get_max_cpu(size, occupancy_data['vcpus'])
+            max_by_ram = self._get_max_ram(size, occupancy_data['memory_mb'])
+            max_by_disk = self._get_max_disk(size, occupancy_data['local_gb'])
 
             limiting_value = int(min(
                 max_by_cpu,
