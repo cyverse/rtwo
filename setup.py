@@ -1,8 +1,9 @@
 import os
 import setuptools
-from rtwo.version import get_version, git_dependencies, dependencies
+from rtwo.version import get_version, read_requirements
 
 readme = open('README.md').read()
+dependencies, requirements = read_requirements('requirements.txt')
 
 long_description = """
 rtwo %s
@@ -29,8 +30,8 @@ setuptools.setup(
     license="Apache License, Version 2.0",
     url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
     packages=setuptools.find_packages(),
-    dependency_links=git_dependencies('requirements.txt'),
-    install_requires=dependencies('requirements.txt'),
+    dependency_links=dependencies,
+    install_requires=requirements,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
