@@ -3,7 +3,7 @@ Instance Link Testing.
 """
 import multiprocessing
 
-import httplib2
+import requests
 
 from threepio import logger
 
@@ -52,23 +52,15 @@ def test_link(address):
     if not address:
         return False
     try:
-        h = httplib2.Http(timeout=2)
-        (header, content) = h.request(address, "HEAD")
-        #logger.debug(header)
-        if 'status' in header and header['status'] == '200':
+        response = requests.head(address)
+        if response.status_code == 200:
             return True
         return False
-    except httplib2.ServerNotFoundError:
-        logger.warn("Bad Address: %s" % address)
+    except requests.ConnectionError, error:
+        err_code, err_reason = error.args[0].reason
+        logger.warn("Link test failed: %s - %s" % (err_code, err_reason))
         return False
     except Exception as e:
-        #These are three 'valid' exceptions
-        if 113 in e.args or 'No route to host' in e.args:
-            return False
-        if 111 in e.args or 'Connection refused' in e.args:
-            return False
-        if 'timeout' in e.args or 'timed out' in e.args:
-            return False
         logger.exception(e)
         return False
 
