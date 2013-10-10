@@ -8,11 +8,11 @@ VERSION = (0, 1, 7, 'dev', 3)
 
 git_match = "(?P<git_flag>git://)\S*#egg="\
             "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
-            "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*)?"
+            "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
             # Version is optional
 egg_match = "(?P<egg>\S.*[a-zA-Z])"\
             "(?P<opt_version_flag>[-=]+)?"\
-            "(?P<opt_version>[0-9][0-9.-]*)?"
+            "(?P<opt_version>[0-9]*[0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
             # Version is optional
 def read_requirements(requirements_file):
     """
@@ -49,7 +49,8 @@ def read_requirements(requirements_file):
                 dependencies.append(line)
             #Requirements should be added for each line
             if group.get('opt_version') and group.get('egg'):
-                install_requires.append("%s==%s" % (group['egg'], group['opt_version']))
+                install_requires.append("%s==%s%s" % (group['egg'], group['opt_version'],
+                        '-dev' if group.get('dev_flag') else ''))
             elif group.get('egg'):
                 install_requires.append("%s" % (group['egg']))
     return (dependencies, install_requires)
