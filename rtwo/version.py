@@ -1,5 +1,5 @@
 """
-Current logger version.
+rtwo version.
 """
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
