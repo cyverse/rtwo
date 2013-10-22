@@ -52,7 +52,7 @@ def test_link(address):
     if not address:
         return False
     try:
-        response = requests.head(address)
+        response = requests.head(address, timeout=9.0)
         if response.status_code == 200:
             return True
         return False
