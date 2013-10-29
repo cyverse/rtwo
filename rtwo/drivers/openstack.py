@@ -547,7 +547,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='DELETE')
         return server_resp.status == 202
 
-    def ex_list_all_instances(self):
+    def ex_list_all_instances(self, *args, **kwargs):
         """
         List all instances from all tenants of a user
         """

@@ -18,7 +18,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
     """
 
     def _is_name(self, name):
-        for n in ['admin', 'edwins', 'edwin',
+        for n in ['admin', 'edwins', 'edwin', 'sgregory',
                   'esteve', 'jmatt', 'nirav',
                   'nmatasci', 'sangeeta', 'aedmonds']:
             if n == name:
@@ -56,6 +56,13 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         #logger.debug('%s->%s' % (machine_name,new_machine_name))
         #logger.debug('names = %s' % names)
         return new_machine_name
+
+    def ex_list_all_instances(self, *args, **kwargs):
+        """
+        This is merely syntactic sugar, eucalyptus shows all instances when
+        the user has the proper access
+        """
+        return self.list_nodes(*args, **kwargs)
 
     def list_images(self, location=None, ex_image_ids=None, emi_only=True):
         """
@@ -246,6 +253,13 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
             ips = nodes_elastic_ips_mappings[node.id]
             node.public_ips.extend(ips)
         return nodes
+
+    def ex_list_all_volumes(self):
+        """
+        This is merely syntactic sugar, eucalyptus shows all volumes when
+        the user has the proper access
+        """
+        return self.list_volumes()
 
     def list_volumes(self):
         """

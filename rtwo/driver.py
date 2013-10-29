@@ -200,6 +200,20 @@ class EshDriver(LibcloudDriver, MetaMixin):
            and isinstance(identity, self.identityCls)):
             raise ServiceException('Wrong Provider or Identity')
 
+    def list_all_volumes(self, *args, **kwargs):
+        """
+        Return the InstanceClass representation of a libcloud node
+        """
+        return self.provider.volumeCls.get_volumes(
+            self._connection.ex_list_all_volumes())
+
+    def list_all_instances(self, *args, **kwargs):
+        """
+        Return the InstanceClass representation of a libcloud node
+        """
+        return self.provider.instanceCls.get_instances(
+            self._connection.ex_list_all_instances())
+
     def list_instances(self, *args, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node
