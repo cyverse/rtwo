@@ -70,10 +70,12 @@ def active_instances(instances):
 def active_instances_naive(instances):
     test_results = {}
     for instance in instances:
-        if instance.ip is not None:
+        if instance.ip is not None and instance.extra['status'] == 'active':
             link_results = test_instance_links(instance.alias, instance.ip)
         else:
-            logger.info(instance)
+            logger.info("Not testing %s:%s-%s" % (instance,
+                                               instance.ip,
+                                               instance.extra['status']))
         test_results.update(link_results)
     return test_results
 
