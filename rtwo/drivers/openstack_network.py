@@ -45,6 +45,18 @@ class NetworkManager(object):
                               'interface': my_router_interface}
         return user_map
 
+    def get_user_neutron(self, username, password,
+                         project_name, auth_url, region_name):
+        user_creds = {
+            'username': username,
+            'password': password,
+            'tenant_name': project_name,
+            'auth_url': auth_url,
+            'region_name': region_name
+        }
+        user_neutron = self.new_connection(**user_creds)
+        return user_neutron
+
     def create_project_network(self, username, password,
                                project_name, get_unique_number=None, **kwargs):
         """
@@ -55,6 +67,7 @@ class NetworkManager(object):
         (As admin):
         Add interface between router and gateway
         """
+
         auth_url = kwargs.get('auth_url')
         region_name = kwargs.get('region_name')
         router_name = kwargs.get('router_name')
@@ -65,17 +78,8 @@ class NetworkManager(object):
         else:
             raise Exception("Default public router was not found.")
         # Step 2. Set up user-specific virtual network
-        user_creds = {
-            'username': username,
-            'password': password,
-            'tenant_name': project_name,
-            'auth_url': auth_url,
-            'region_name': region_name
-        }
-        logger.info("Initializing network connection for %s" % username)
-        logger.info(user_creds)
-        logger.info(router_name)
-        user_neutron = self.new_connection(**user_creds)
+        user_neutron = self.get_user_neutron(username, password, project_name,
+                                             auth_url, region_name)
         network = self.create_network(user_neutron, '%s-net' % project_name)
         subnet = self.create_user_subnet(user_neutron,
                                          '%s-subnet' % project_name,
@@ -99,6 +103,15 @@ class NetworkManager(object):
                                      '%s-subnet' % project_name)
         self.delete_subnet(self.neutron, '%s-subnet' % project_name)
         self.delete_network(self.neutron, '%s-net' % project_name)
+
+    def disassociate_floating_ip(self, server_id, floating_ip):
+        """
+        Remove a floating IP from server_id
+        Find port of new VM
+        Associate new floating IP with the port assigned to the new VM
+        """
+        deleted = self.neutron.delete_floatingip(floating_ip)
+        return deleted
 
     def associate_floating_ip(self, server_id):
         """

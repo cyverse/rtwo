@@ -879,6 +879,40 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             replace_metadata=False)
         return floating_ip
 
+    def _del_floating_ip(self, node, *args, **kwargs):
+        """
+        Remove IP (Neutron)
+        There is no good way to interface libcloud + nova + neutron,
+        instead we call neutronclient directly..
+        Feel free to replace when a better mechanism comes along..
+        """
+        network_manager = NetworkManager.lc_driver_init(self)
+
+        #Can we assign a public ip? Node must be active
+        #if node.extra['status'] != 'active':
+        #    raise Exception("Instance %s must be active before associating "
+        #                    "floating IP" % node.id)
+
+        #Did we already assign a public ip? lets use that instead.
+        if not node.extra['metadata'].get('public_ip'):
+            return 
+        floating_ip = node.extra['metadata']['public_ip']
+
+        try:
+            removed = network_manager.disassociate_floating_ip(node.id, floating_ip)
+        except NeutronClientException as q_error:
+            if q_error.status_code == 409:
+                #409 == Conflict
+                #Lets look through the message and determine why:
+                logger.info("Conflict stopped node from disassociating new "
+                            "floating IP. Message=%s" % q_error.message)
+            #Handle any conflicts that make sense and return, all others:
+            raise
+
+        #A floating IP has been removed, clear it from metadata
+        self.ex_set_metadata(node, {'public_ip': None}, replace_metadata=False)
+        return floating_ip
+
     def _update_node(self, node, **node_updates):
         """
         OVERRIDES original implementation!
