@@ -214,6 +214,16 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return self.provider.instanceCls.get_instances(
             self._connection.ex_list_all_instances())
 
+    def get_instance(self, instance_id, *args, **kwargs):
+        """
+        Return the InstanceClass representation of a libcloud node
+        """
+        instances = self.list_all_instances()
+        instance = [inst for inst in instances if inst.id == instance_id]
+        if not instance:
+            return None
+        return instance
+
     def list_instances(self, *args, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node

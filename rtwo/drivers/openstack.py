@@ -80,26 +80,43 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
     Object builders -- Convert the native dict in to a Libcloud object
     """
-    def _to_volumes(self, el):
-        return [self._to_volume(volume) for volume in el['volumes']]
+    def _to_volumes(self, el, glance=False):
+        return [self._to_volume(volume, glance=glance) for volume in el['volumes']]
 
-    def _to_volume(self, api_volume):
-        created_time = datetime.strptime(api_volume['createdAt'],
-                                         '%Y-%m-%dT%H:%M:%S.%f')
+    def _to_volume(self, api_volume, glance=False):
+        if glance:
+            created_at = api_volume['created_at']
+            display_name = api_volume['display_name']
+            display_description = api_volume['display_description']
+            availability_zone = api_volume['availability_zone']
+            snapshot_id = api_volume['snapshot_id']
+            attachmentSet = api_volume['attachments']
+            for attachment in attachmentSet:
+                attachment['serverId'] = attachment.pop('server_id')
+                attachment['volumeId'] = attachment.pop('volume_id')
+        else:
+            created_at = api_volume['createdAt']
+            display_name = api_volume['displayName']
+            display_description = api_volume['displayDescription']
+            availability_zone = api_volume['availabilityZone']
+            snapshot_id = api_volume['snapshotId']
+            attachmentSet = api_volume['attachments']
+
+        created_time = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%f')
         extra = {
             'id': api_volume['id'],
-            'displayName': api_volume['displayName'],
-            'displayDescription': api_volume['displayDescription'],
+            'displayName': display_name,
+            'displayDescription': display_description,
             'size': api_volume['size'],
             'status': api_volume['status'],
             'metadata': api_volume['metadata'],
-            'availabilityZone': api_volume['availabilityZone'],
-            'snapshotId': api_volume['snapshotId'],
-            'attachmentSet': api_volume['attachments'],
+            'availabilityZone': availability_zone,
+            'snapshotId': snapshot_id,
+            'attachmentSet': attachmentSet,
             'createTime': created_time,
         }
         return StorageVolume(id=api_volume['id'],
-                             name=api_volume['displayName'],
+                             name=display_name,
                              size=api_volume['size'],
                              driver=self,
                              extra=extra)
@@ -560,10 +577,26 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         List all volumes from all tenants of a user
         """
-        server_resp = self.connection.request(
-            '/os-volumes?all_tenants=1',
-            method='GET')
-        return self._to_volumes(server_resp.object)
+        lc_conn = self.connection
+        if not lc_conn.service_catalog:
+            lc_conn.get_service_catalog()
+        #Change base_url, make request, update base_url
+        if lc_conn._ex_force_base_url:
+            old_endpoint = lc_conn._ex_force_base_url 
+        else:
+            old_endpoint = lc_conn.get_endpoint()
+        try:
+            new_service = lc_conn.service_catalog.get_endpoint(
+                                service_type='volume',name='cinder',
+                                region=lc_conn.service_region)
+            lc_conn._ex_force_base_url = new_service['publicURL']
+            server_resp = lc_conn.request(
+                '/volumes/detail?all_tenants=1',
+                method='GET')
+            return self._to_volumes(server_resp.object, glance=True)
+        finally:
+            lc_conn._ex_force_base_url = old_endpoint
+
 
     def ex_list_volume_attachments(self, node):
         """

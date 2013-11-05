@@ -58,7 +58,7 @@ def test_link(address):
         return False
     except requests.ConnectionError, error:
         err_code, err_reason = error.args[0].reason
-        logger.warn("Link test failed: %s - %s" % (err_code, err_reason))
+        logger.warn("Link test failed: URL:%s Error:%s - %s" % (address, err_code, err_reason))
         return False
     except Exception as e:
         logger.exception(e)
