@@ -222,7 +222,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         instance = [inst for inst in instances if inst.id == instance_id]
         if not instance:
             return None
-        return instance
+        return instance[0]
 
     def list_instances(self, *args, **kwargs):
         """
