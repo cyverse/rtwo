@@ -4,7 +4,7 @@ rtwo version.
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
-VERSION = (0, 1, 8, 'dev', 0)
+VERSION = (0, 1, 8, 'dev', 1)
 
 git_match = "(?P<git_flag>git://)\S*#egg="\
             "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
