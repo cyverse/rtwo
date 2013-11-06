@@ -68,7 +68,7 @@ class Machine(BaseMachine):
         machine = provider_machines.get(alias)
         if machine:
             #logger.info("Found machine for provider:%s - %s" %
-                (identifier, machine))
+            #    (identifier, machine))
             return machine
         return cls.create_machine(cls.provider, lc_image)
 
