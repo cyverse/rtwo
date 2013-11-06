@@ -147,7 +147,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         network_manager = NetworkManager.lc_driver_init(self)
         floating_ips = network_manager.list_floating_ips()
         for f_ip in floating_ips:
-            if f_ip['instance_id'] == node.id:
+            if f_ip.get('instance_id') == node.id:
                 node.public_ips.append(f_ip['floating_ip_address'])
         return
 
