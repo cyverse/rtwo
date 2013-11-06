@@ -1,7 +1,13 @@
 """
-OpenStack CloudAdmin Libarary
+OpenStack Network Admin Libarary
+
+    Create:
+    # To create a libcloud driver use the lc_driver_init method.
+    # For instance with an rtwo OpenStack driver it's driver._connection.
+    nm = NetworkManager.lc_driver_init(driver._connection)
+
     Use this library to:
-    * manage networks within Neutron - openstack networking
+      * manage networks within Neutron - openstack networking
 """
 import os
 
