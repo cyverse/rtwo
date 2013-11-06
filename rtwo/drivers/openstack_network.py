@@ -104,14 +104,21 @@ class NetworkManager(object):
         self.delete_subnet(self.neutron, '%s-subnet' % project_name)
         self.delete_network(self.neutron, '%s-net' % project_name)
 
-    def disassociate_floating_ip(self, server_id, floating_ip):
+    def disassociate_floating_ip(self, server_id):
         """
-        Remove a floating IP from server_id
-        Find port of new VM
-        Associate new floating IP with the port assigned to the new VM
+        Remove floating IP from the server <server_id>
+        * NO return value
+        * raises NeutronClientException if delete fails
         """
-        deleted = self.neutron.delete_floatingip(floating_ip)
-        return deleted
+        for f_ip in self.list_floating_ips():
+            if f_ip['instance_id'] == server_id:
+                floating_ip_id = f_ip['id']
+        #No floating ip matches - Disassociate has nothing to do
+        if not floating_ip_id:
+            return
+        #Remove floating ip
+        deleted_ip = self.neutron.delete_floatingip(floating_ip_id)
+        return
 
     def associate_floating_ip(self, server_id):
         """
@@ -119,6 +126,8 @@ class NetworkManager(object):
         Find port of new VM
         Associate new floating IP with the port assigned to the new VM
         """
+        #TODO: Look at the network if it already has a floating ip, dont
+        #re-create
         external_networks = [net for net
                              in self.lc_list_networks()
                              if net.extra['router:external']]

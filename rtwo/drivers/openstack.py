@@ -140,6 +140,17 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         image.extra['state'] = api_machine['status'].lower()
         return image
 
+    def neutron_set_ips(self, node):
+        """
+        Using the network manager, find all IPs associated with this node
+        """
+        network_manager = NetworkManager.lc_driver_init(self)
+        floating_ips = network_manager.list_floating_ips()
+        for f_ip in floating_ips:
+            if f_ip['instance_id'] == node.id:
+                node.public_ips.append(f_ip['floating_ip_address'])
+        return
+
     def _to_node(self, api_node):
         """
         Extends OpenStack_1_1_NodeDriver._to_node
@@ -159,9 +170,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             public_ips.append(ip['addr'])
                         else:
                             private_ips.append(ip['addr'])
-                #NOTE: This is a hack until we update grizzly
-                if api_node['metadata'].get('public_ip'):
-                    public_ips.append(api_node['metadata']['public_ip'])
                 [node.public_ips.append(ip) for ip in public_ips
                  if ip not in node.public_ips]
                 [node.private_ips.append(ip) for ip in private_ips
@@ -170,7 +178,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 logger.warn("No IP for node:%s" % api_node['id'])
 
         node = super(OpenStack_Esh_NodeDriver, self)._to_node(api_node)
-        _set_ips()
+        #_set_ips()
+        self.neutron_set_ips(node)
         node.extra.update({
             'addresses': api_node.get('addresses'),
             'status': api_node.get('status').lower(),
@@ -844,25 +853,21 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     While these methods are useful,
     they will NOT be included when we push back to libcloud..
     """
-    def _add_floating_ip(self, node, *args, **kwargs):
+    def neutron_associate_ip(self, node, *args, **kwargs):
         """
         Add IP (Neutron)
         There is no good way to interface libcloud + nova + neutron,
         instead we call neutronclient directly..
         Feel free to replace when a better mechanism comes along..
         """
-        network_manager = NetworkManager.lc_driver_init(self)
 
         #Can we assign a public ip? Node must be active
         if node.extra['status'] != 'active':
             raise Exception("Instance %s must be active before associating "
                             "floating IP" % node.id)
 
-        #Did we already assign a public ip? lets use that instead.
-        if node.extra['metadata'].get('public_ip'):
-            return node.extra['metadata']['public_ip']
-
         try:
+            network_manager = NetworkManager.lc_driver_init(self)
             floating_ip = network_manager.associate_floating_ip(node.id)
         except NeutronClientException as q_error:
             if q_error.status_code == 409:
@@ -873,33 +878,20 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             #Handle any conflicts that make sense and return, all others:
             raise
 
-        #A floating IP has been assigned, save it to metadata
-        self.ex_set_metadata(
-            node, {'public_ip': floating_ip['floating_ip_address']},
-            replace_metadata=False)
         return floating_ip
 
-    def _del_floating_ip(self, node, *args, **kwargs):
+    def neutron_disassociate_ip(self, node, *args, **kwargs):
         """
         Remove IP (Neutron)
         There is no good way to interface libcloud + nova + neutron,
         instead we call neutronclient directly..
         Feel free to replace when a better mechanism comes along..
         """
-        network_manager = NetworkManager.lc_driver_init(self)
 
-        #Can we assign a public ip? Node must be active
-        #if node.extra['status'] != 'active':
-        #    raise Exception("Instance %s must be active before associating "
-        #                    "floating IP" % node.id)
-
-        #Did we already assign a public ip? lets use that instead.
-        if not node.extra['metadata'].get('public_ip'):
-            return 
-        floating_ip = node.extra['metadata']['public_ip']
-
+        instance_id = node.id
         try:
-            removed = network_manager.disassociate_floating_ip(node.id, floating_ip)
+            network_manager = NetworkManager.lc_driver_init(self)
+            network_manager.disassociate_floating_ip(node.id)
         except NeutronClientException as q_error:
             if q_error.status_code == 409:
                 #409 == Conflict
@@ -909,9 +901,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             #Handle any conflicts that make sense and return, all others:
             raise
 
-        #A floating IP has been removed, clear it from metadata
-        self.ex_set_metadata(node, {'public_ip': None}, replace_metadata=False)
-        return floating_ip
+        return True
 
     def _update_node(self, node, **node_updates):
         """
