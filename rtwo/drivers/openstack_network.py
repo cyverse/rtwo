@@ -111,7 +111,7 @@ class NetworkManager(object):
         * raises NeutronClientException if delete fails
         """
         for f_ip in self.list_floating_ips():
-            if f_ip['instance_id'] == server_id:
+            if f_ip.get('instance_id') == server_id:
                 floating_ip_id = f_ip['id']
         #No floating ip matches - Disassociate has nothing to do
         if not floating_ip_id:
