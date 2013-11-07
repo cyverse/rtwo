@@ -63,12 +63,12 @@ class Machine(BaseMachine):
         identifier = cls.provider.identifier
         provider_machines = cls.machines.get(identifier)
         if not provider_machines:
-            logger.info("Created new machine dict for provider %s" % identifier)
+            #logger.info("Created new machine dict for provider %s" % identifier)
             provider_machines = {}
         machine = provider_machines.get(alias)
         if machine:
-            logger.info("Found machine for provider:%s - %s" %
-                (identifier, machine))
+            #logger.info("Found machine for provider:%s - %s" %
+            #    (identifier, machine))
             return machine
         return cls.create_machine(cls.provider, lc_image)
 
