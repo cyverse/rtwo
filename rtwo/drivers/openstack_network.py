@@ -91,6 +91,7 @@ class NetworkManager(object):
         self.add_router_interface(public_router,
                                   subnet)
         #self.set_router_gateway(user_neutron, '%s-router' % project_name)
+        return (network, subnet)
 
     def delete_project_network(self, username, project_name):
         """
@@ -110,6 +111,7 @@ class NetworkManager(object):
         * NO return value
         * raises NeutronClientException if delete fails
         """
+        floating_ip_id = None
         for f_ip in self.list_floating_ips():
             if f_ip.get('instance_id') == server_id:
                 floating_ip_id = f_ip['id']
@@ -135,7 +137,7 @@ class NetworkManager(object):
                 {'floating_network_id': external_networks[0].id}}
         new_ip = self.neutron.create_floatingip(body)['floatingip']
 
-        instance_ports = self.neutron.list_ports(device_id=server_id)['ports']
+        instance_ports = self.list_ports(device_id=server_id)
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
         assigned_ip = self.neutron.update_floatingip(new_ip['id'],
@@ -143,16 +145,32 @@ class NetworkManager(object):
         logger.info('Assigned Floating IP - %s:%s' % (server_id, assigned_ip))
         return assigned_ip
 
+    def create_port(self, server_id, network_id, name=None):
+        """
+        Create a new (Fixed IP) Port between server id and the user network
+        """
+        port_obj = self.neutron.create_port(
+                {'port': 
+                    {
+                        'network_id':network_id,
+                        'device_id':server_id,
+                        'admin_state_up':True,
+                        'name':name
+                    }
+                })
+        return port_obj['port']
+
+
     def find_server_ports(self, server_id):
         """
         Find all the ports for a given server_id (device_id in port object).
         """
         server_ports = []
-        all_ports = self.neutron.list_ports()['ports']
+        all_ports = self.list_ports()
         return [p for p in all_ports if p['device_id'] == server_id]
 
     def list_floating_ips(self):
-        instance_ports = self.neutron.list_ports()['ports']
+        instance_ports = self.list_ports()
         floating_ips = self.neutron.list_floatingips()['floatingips']
         # Connect instances and floating_ips using ports.
         for fip in floating_ips:
@@ -210,8 +228,17 @@ class NetworkManager(object):
         if not routers:
             return []
         router_id = routers[0]['id']
-        return [port for port in self.neutron.list_ports()['ports']
+        return [port for port in self.list_ports()
                 if router_id == port['device_id']]
+
+        def list_ports(self, **kwargs):
+            """
+            Options:
+            subnet_id=subnet.id
+            device_id=device.id
+            ip_address=111.222.333.444
+            """
+            return self.neutron.list_ports(**kwargs)['ports']
 
     def find_router_interface(self, router, subnet):
         #If no router/subnet, return None

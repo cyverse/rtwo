@@ -207,7 +207,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return self.provider.volumeCls.get_volumes(
             self._connection.ex_list_all_volumes())
 
-    def list_all_instances(self, *args, **kwargs):
+    def list_all_instances(self, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node
         """
@@ -224,7 +224,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
             return None
         return instance[0]
 
-    def list_instances(self, *args, **kwargs):
+    def list_instances(self, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node
         """

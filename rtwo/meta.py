@@ -281,9 +281,9 @@ class OSMeta(Meta):
                                                             tenant_name)
         return True
 
-    def all_instances(self):
+    def all_instances(self, **kwargs):
         return self.provider.instanceCls.get_instances(
-            self.admin_driver._connection.ex_list_all_instances())
+            self.admin_driver._connection.ex_list_all_instances(**kwargs))
 
     def all_volumes(self):
         return self.provider.instanceCls.get_instances(

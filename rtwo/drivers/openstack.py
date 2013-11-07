@@ -140,18 +140,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         image.extra['state'] = api_machine['status'].lower()
         return image
 
-    def neutron_set_ips(self, node):
+    def neutron_set_ips(self, node, floating_ips):
         """
         Using the network manager, find all IPs associated with this node
         """
-        network_manager = NetworkManager.lc_driver_init(self)
-        floating_ips = network_manager.list_floating_ips()
         for f_ip in floating_ips:
             if f_ip.get('instance_id') == node.id:
                 node.public_ips.append(f_ip['floating_ip_address'])
         return
 
-    def _to_node(self, api_node):
+    def _to_nodes(self, el):
+        network_manager = NetworkManager.lc_driver_init(self)
+        floating_ip_list = network_manager.list_floating_ips()
+        return [self._to_node(
+                    api_node, floating_ips=floating_ip_list) 
+                    for api_node in el['servers']]
+
+    def _to_node(self, api_node, floating_ips=[]):
         """
         Extends OpenStack_1_1_NodeDriver._to_node
         adding support for public and private ips.
@@ -178,8 +183,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 logger.warn("No IP for node:%s" % api_node['id'])
 
         node = super(OpenStack_Esh_NodeDriver, self)._to_node(api_node)
-        #_set_ips()
-        self.neutron_set_ips(node)
+        if floating_ips:
+            self.neutron_set_ips(node, floating_ips)
+        else:
+            _set_ips()
         node.extra.update({
             'addresses': api_node.get('addresses'),
             'status': api_node.get('status').lower(),
@@ -573,7 +580,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='DELETE')
         return server_resp.status == 202
 
-    def ex_list_all_instances(self, *args, **kwargs):
+    def ex_list_all_instances(self):
         """
         List all instances from all tenants of a user
         """
@@ -867,7 +874,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             "floating IP" % node.id)
 
         try:
-            network_manager = NetworkManager.lc_driver_init(self)
+            network_manager = self.get_network_manager()
             floating_ip = network_manager.associate_floating_ip(node.id)
         except NeutronClientException as q_error:
             if q_error.status_code == 409:
@@ -880,6 +887,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         return floating_ip
 
+    def get_network_manager(self):
+        return NetworkManager.lc_driver_init(self)
+
     def neutron_disassociate_ip(self, node, *args, **kwargs):
         """
         Remove IP (Neutron)
@@ -890,7 +900,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         instance_id = node.id
         try:
-            network_manager = NetworkManager.lc_driver_init(self)
+            network_manager = self.get_network_manager()
             network_manager.disassociate_floating_ip(node.id)
         except NeutronClientException as q_error:
             if q_error.status_code == 409:

@@ -53,7 +53,7 @@ def test_link(address):
         return False
     try:
         response = requests.head(address, timeout=9.0)
-        if response.status_code == 200:
+        if response.status_code in [200, 302]:
             return True
         return False
     except requests.ConnectionError, error:
