@@ -155,6 +155,8 @@ class NetworkManager(object):
         """
         Create a new (Fixed IP) Port between server id and the user network
         """
+        if not name:
+            name = 'fixed_ip_%s' % (server_id,)
         port_obj = self.neutron.create_port(
                 {'port': 
                     {
@@ -237,14 +239,14 @@ class NetworkManager(object):
         return [port for port in self.list_ports()
                 if router_id == port['device_id']]
 
-        def list_ports(self, **kwargs):
-            """
-            Options:
-            subnet_id=subnet.id
-            device_id=device.id
-            ip_address=111.222.333.444
-            """
-            return self.neutron.list_ports(**kwargs)['ports']
+    def list_ports(self, **kwargs):
+        """
+        Options:
+        subnet_id=subnet.id
+        device_id=device.id
+        ip_address=111.222.333.444
+        """
+        return self.neutron.list_ports(**kwargs)['ports']
 
     def find_router_interface(self, router, subnet):
         #If no router/subnet, return None
