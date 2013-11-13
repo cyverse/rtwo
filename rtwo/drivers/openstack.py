@@ -230,7 +230,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         # waits for valid IP port
         #TODO: This belongs in a eelery task.
         #server_id = node.id
-        self._add_floating_ip(node, **kwargs)
+        self.neutron_associate_ip(node, **kwargs)
 
         return node
 

@@ -515,10 +515,10 @@ class OSDriver(EshDriver, InstanceActionMixin):
         return self._connection.ex_revert_resize(*args, **kwargs)
 
     def _add_floating_ip(self, instance, *args, **kwargs):
-        return self._connection._add_floating_ip(instance, *args, **kwargs)
+        return self._connection.neutron_associate_ip(instance, *args, **kwargs)
 
     def _del_floating_ip(self, instance, *args, **kwargs):
-        return self._connection._del_floating_ip(instance, *args, **kwargs)
+        return self._connection.neutron_disassociate_ip(instance, *args, **kwargs)
 
     def _clean_floating_ip(self, *args, **kwargs):
         return self._connection.ex_clean_floating_ip(**kwargs)

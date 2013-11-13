@@ -48,7 +48,7 @@ class NetworkManager(object):
                 '%s-subnet' % user)
             user_map[user] = {'network': my_network,
                               'subnet': my_subnet,
-                              'interface': my_router_interface}
+                              'public_interface': my_router_interface}
         return user_map
 
     def get_user_neutron(self, username, password,
@@ -349,7 +349,11 @@ class NetworkManager(object):
             'network_id': network_id,
             'ip_version': ip_version,
             'cidr': cidr,
-            'dns_nameservers': ['8.8.8.8', '8.8.4.4']}
+            'dns_nameservers':[
+                '128.196.11.233',
+                '128.196.11.234',
+                '128.196.11.235',
+                ]} #['8.8.8.8', '8.8.4.4']}
         logger.debug(subnet)
         subnet_obj = neutron.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
