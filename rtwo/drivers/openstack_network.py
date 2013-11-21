@@ -195,7 +195,8 @@ class NetworkManager(object):
             'username': lc_driver.key,
             'password': lc_driver.secret,
             'tenant_name': lc_driver._ex_tenant_name,
-            'auth_url': lc_driver._ex_force_auth_url,
+            #Libcloud requires /v2.0/tokens -- OS clients do not.
+            'auth_url': lc_driver._ex_force_auth_url.replace('/tokens',''),
             'region_name': lc_driver._ex_force_service_region}
         lc_driver_args.update(kwargs)
         manager = NetworkManager(*args, **lc_driver_args)
