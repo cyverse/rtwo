@@ -461,7 +461,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_get_quota(self):
         tenant_id = self._get_tenant_id()
         return self.connection.request("/os-quota-sets/%s" % tenant_id).object
-
     def ex_update_quota(self, **kwargs):
         """
         Updates value/values in quota set
@@ -486,6 +485,28 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             logger.exception("Exception occured creating quota. Body:%s"
                              % body)
             return (False, None)
+
+    def ex_update_quota_for_user(self, user_id, values):
+        """
+        Updates value/values in quota set
+
+        @keyword user_id: User ID. Typically a UUID.
+        @type    user_id: C{str}
+        @keyword values: A Dict containing the new key/value for quota set
+        @type    values: C{dict}
+        """
+        body = {'quota_set': values}
+        server_resp = self.connection.request('/os-quota-sets/%s' % user_id,
+                                              method='POST',
+                                              data=body)
+        try:
+            quota_obj = server_resp.object
+            return (server_resp.status == 200, quota_obj)
+        except Exception, e:
+            logger.exception("Exception occured updating quota. Body:%s"
+                             % body)
+            return (False, None)
+
 
     #Volumes
     def create_volume(self, **kwargs):

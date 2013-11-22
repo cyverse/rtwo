@@ -254,8 +254,7 @@ class UserManager():
         roles = user.list_roles(project)
         for role in roles:
             project.remove_user(user, role)
-            
-        
+
 
     def delete_project_member(self, groupname, username, adminRole=False):
         """
