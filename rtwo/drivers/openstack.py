@@ -461,43 +461,25 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_get_quota(self):
         tenant_id = self._get_tenant_id()
         return self.connection.request("/os-quota-sets/%s" % tenant_id).object
-    def ex_update_quota(self, **kwargs):
+
+    def ex_update_quota_for_user(self, tenant_id, user_id, values):
         """
         Updates value/values in quota set
 
-        @keyword values: A Dict containing the new key/value for quota set
-        @type    values: C{dict}
-        """
-        tenant_id = self._get_tenant_id()
+        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+        @type    tenant_id: C{str}
 
-        quota_values = kwargs.get('values',{})
-        if not quota_values.has_key('tenant_id'):
-            #Include tenant_id if not already passed
-            quota_values['tenant_id'] = tenant_id
-        body = {'quota_set': quota_values}
-        server_resp = self.connection.request('/os-quota-sets/%s' % tenant_id,
-                                              method='PUT',
-                                              data=body)
-        try:
-            quota_obj = server_resp.object
-            return (server_resp.status == 200, quota_obj)
-        except Exception, e:
-            logger.exception("Exception occured creating quota. Body:%s"
-                             % body)
-            return (False, None)
-
-    def ex_update_quota_for_user(self, user_id, values):
-        """
-        Updates value/values in quota set
-
-        @keyword user_id: User ID. Typically a UUID.
+        @keyword user_id: User ID to update. Typically a UUID.
         @type    user_id: C{str}
+
         @keyword values: A Dict containing the new key/value for quota set
         @type    values: C{dict}
         """
+        values['tenant_id'] = tenant_id
         body = {'quota_set': values}
-        server_resp = self.connection.request('/os-quota-sets/%s' % user_id,
-                                              method='POST',
+        server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
+                                              % (tenant_id, user_id),
+                                              method='PUT',
                                               data=body)
         try:
             quota_obj = server_resp.object
@@ -506,7 +488,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             logger.exception("Exception occured updating quota. Body:%s"
                              % body)
             return (False, None)
-
 
     #Volumes
     def create_volume(self, **kwargs):
