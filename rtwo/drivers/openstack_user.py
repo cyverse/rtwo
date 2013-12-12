@@ -57,21 +57,26 @@ class UserManager():
         nova.client.region_name = self.nova.client.region_name
         return nova
 
-    def add_role(username, projectname, userrole, adminrole='admin'):
-
-
-        logger.debug("Assign project:%s Member:%s Role:%s" %
-                    (projectname, username, adminRole))
-
-        # For security/monitoring we will add the admin to the project with a
-        # special role
-        admin_role = self.get_role(adminrole)
+    def include_admin(username, projectname, admin_rolename='admin'):
+        """
+        This should be called each time an account is created:
+          This gives the admin tenant access to view the users resources
+          This is REQUIRED for:
+          * Monitoring of instances
+          * Ops
+        """
+        admin_role = self.get_role(admin_rolename)
         admin_user = self.get_user(self.keystone.username)
+        logger.debug("Assign project:%s Member:%s Role:%s" %
+                    (projectname, username, admin_rolename))
         admin_obj = project.add_user(admin_user, adminrole)
+        admin_role_created = self.add_project_member(projectname, self.keystone.username, adminrole)
+        return admin_role_created
 
+    def add_role(username, projectname, user_rolename):
         # raises keystoneclient.exceptions.ClientException
-        self.add_project_member(projectname, self.keystone.username, adminrole)
-        created_role = self.add_project_member(projectname, username, userrole)
+        created_role = self.add_project_member(
+                projectname, username, user_rolename)
         return created_role
 
     def build_security_group(self, username, password, project_name,
@@ -191,7 +196,7 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def add_project_member(self, groupname, username, userrole):
+    def add_project_member(self, groupname, username, rolename):
         """
         Adds user(name) to group(name) with role(name)
 
@@ -200,7 +205,11 @@ class UserManager():
         """
         project = self.get_project(groupname)
         user = self.get_user(username)
-        role = self.get_role(userrole)
+        new_role = self.get_role(rolename)
+        existing_roles = user.list_roles(project)
+        for role in existing_roles:
+            if role.name == rolename:
+                return user
         try:
             user_obj = project.add_user(user, role)
         except Exception, e:
