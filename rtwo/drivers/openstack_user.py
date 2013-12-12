@@ -57,7 +57,7 @@ class UserManager():
         nova.client.region_name = self.nova.client.region_name
         return nova
 
-    def include_admin(username, projectname, admin_rolename='admin'):
+    def include_admin(self, projectname, admin_rolename='admin'):
         """
         This should be called each time an account is created:
           This gives the admin tenant access to view the users resources
@@ -65,19 +65,9 @@ class UserManager():
           * Monitoring of instances
           * Ops
         """
-        admin_role = self.get_role(admin_rolename)
-        admin_user = self.get_user(self.keystone.username)
-        logger.debug("Assign project:%s Member:%s Role:%s" %
-                    (projectname, username, admin_rolename))
-        admin_obj = project.add_user(admin_user, adminrole)
-        admin_role_created = self.add_project_member(projectname, self.keystone.username, adminrole)
+        admin_role_created = self.add_project_member(
+                projectname, self.keystone.username, admin_rolename)
         return admin_role_created
-
-    def add_role(username, projectname, user_rolename):
-        # raises keystoneclient.exceptions.ClientException
-        created_role = self.add_project_member(
-                projectname, username, user_rolename)
-        return created_role
 
     def build_security_group(self, username, password, project_name,
             protocol_list, securitygroup_name='default', rebuild=False, *args, **kwargs):
@@ -203,18 +193,29 @@ class UserManager():
         Invalid groupname, username, rolename :
             raise keystoneclient.exceptions.NotFound
         """
-        project = self.get_project(groupname)
-        user = self.get_user(username)
-        new_role = self.get_role(rolename)
-        existing_roles = user.list_roles(project)
-        for role in existing_roles:
-            if role.name == rolename:
-                return user
+        # Check for previous entry
+        if self.role_exists(username, groupname, rolename):
+            return
+        # Create a new entry
         try:
-            user_obj = project.add_user(user, role)
+            project = self.get_project(groupname)
+            user = self.get_user(username)
+            new_role = self.get_role(rolename)
+            user_obj = project.add_user(user, new_role)
         except Exception, e:
             logger.exception(e)
             raise
+
+    def role_exists(self, username, projectname, rolename):
+        project = self.get_project(projectname)
+        user = self.get_user(username)
+        new_role = self.get_role(rolename)
+        # Check for previous entry
+        existing_roles = user.list_roles(project)
+        for role in existing_roles:
+            if role.name == rolename:
+                return True
+        return False
 
     def create_user(self, username, password=None, project=None):
         """
