@@ -185,7 +185,7 @@ class NetworkManager(object):
             port = filter(lambda(p): p['id'] == fip['port_id'], instance_ports)
             if port:
                 fip['instance_id'] = port[0]['device_id']
-        logger.debug(floating_ips)
+        #logger.debug(floating_ips)
         return floating_ips
 
     ##Libcloud-Neutron Interface##
