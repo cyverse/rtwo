@@ -421,13 +421,19 @@ class NetworkManager(object):
     def remove_router_interface(self, neutron, router_name, subnet_name):
         router_id = self.get_router_id(neutron, router_name)
         subnet_id = self.get_subnet_id(neutron, subnet_name)
+        #TODO: Devote some time to ensuring the interface router exists BEFORE
+        #making a call to remove it
         if router_id and subnet_id:
             try:
                 return neutron\
                     .remove_interface_router(router_id,
                                              {"subnet_id": subnet_id})
-            except:
-                logger.error("Problem deleting interface router"
+            except NeutronClientException, neutron_err:
+                if 'no interface on subnet' in neutron_err:
+                    #Attempted to delete a connection that does not exist.
+                    #Ignore this conflict.
+                    return
+                logger.exception("Problem deleting interface router"
                              " from router %s to subnet %s."
                              % (router_id, subnet_id))
                 raise
