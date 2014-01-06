@@ -407,7 +407,8 @@ class OSDriver(EshDriver, InstanceActionMixin):
         if not instance_token:
             instance_token = instance.id
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
-        awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s"
+        awesome_atmo_call += " --token=%s --name=%s"
         awesome_atmo_call += " --vnc_license=%s"
         awesome_atmo_call %= (
             atmo_init,
@@ -416,6 +417,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
             settings.SERVER_URL,
             username,
             instance_token,
+            instance.name,
             settings.ATMOSPHERE_VNC_LICENSE)
         #kludge: weirdness without the str cast...
         str_awesome_atmo_call = str(awesome_atmo_call)
@@ -528,14 +530,17 @@ class OSDriver(EshDriver, InstanceActionMixin):
         status = instance.extra['status']
         task = instance.extra['task']
         power = instance.extra['power']
-        if status == 'active':
-            #Active, not being deleted or suspended
-            if task not in ['deleting', 'suspending']:
-                return True
-        elif (status == 'build' or status == 'resize') and task != 'deleting':
-            #The instance is moving toward an active state
+        if status in ['active','build','resize']:
             return True
         return False
+        #if status == 'active':
+        #    #Active, not being deleted or suspended
+        #    if task not in ['deleting', 'suspending']:
+        #        return True
+        #elif (status == 'build' or status == 'resize') and task != 'deleting':
+        #    #The instance is moving toward an active state
+        #    return True
+        #return False
 
 
 class AWSDriver(EshDriver):

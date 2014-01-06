@@ -16,7 +16,7 @@ from threepio import logger
 
 from rtwo.drivers.common import _connect_to_neutron,\
     get_default_subnet
-
+from neutronclient.common.exceptions import NeutronClientException
 
 class NetworkManager(object):
 
@@ -95,7 +95,8 @@ class NetworkManager(object):
                                          get_cidr=get_default_subnet)
         #self.create_router(user_neutron, '%s-router' % project_name)
         self.add_router_interface(public_router,
-                                  subnet)
+                                  subnet,
+                                  '%s-router-intf' % project_name)
         #self.set_router_gateway(user_neutron, '%s-router' % project_name)
         return (network, subnet)
 
@@ -231,6 +232,15 @@ class NetworkManager(object):
     def find_router(self, router_name):
         return [net for net in self.neutron.list_routers()['routers']
                 if router_name == net['name']]
+
+    def get_port(self, port_id):
+        ports = self.list_ports()
+        if not ports:
+            return []
+        for port in ports:
+            if port['id'] == port_id:
+                return port
+        return None
 
     def find_ports(self, router_name):
         routers = self.find_router(router_name)
@@ -368,15 +378,18 @@ class NetworkManager(object):
         router_obj = neutron.create_router({'router': router})
         return router_obj['router']
 
-    def add_router_interface(self, router, subnet):
+    def add_router_interface(self, router, subnet, interface_name=None):
         existing_router_interfaces = self.find_router_interface(router, subnet)
         if existing_router_interfaces:
             logger.info('Router Interface for Subnet:%s-Router:%s already'
                         'exists' % (subnet['name'], router['name']))
             return existing_router_interfaces[0]
-        interface_obj = self.neutron.add_interface_router(
-            router['id'], {
-                "subnet_id": subnet['id']})
+        body = {"subnet_id": subnet['id']}
+        interface_obj = self.neutron.add_interface_router(router['id'], body)
+        if interface_name:
+            self.neutron.update_port(
+                    interface_obj['port_id'],
+                    {"port":{"name":interface_name}})
         return interface_obj
 
     def set_router_gateway(self, neutron, router_name,

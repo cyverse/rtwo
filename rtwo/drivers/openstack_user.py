@@ -6,6 +6,7 @@ OpenStack CloudAdmin Libarary
 import os
 
 from keystoneclient.exceptions import NotFound, ClientException
+from novaclient.exceptions import OverLimit
 
 from threepio import logger
 
@@ -139,11 +140,17 @@ class UserManager():
         
         if not self.find_rule(security_group, ip_protocol,
                           from_port, to_port):
-            nova.security_group_rules.create(security_group.id,
-                                             ip_protocol=ip_protocol,
-                                             from_port=from_port,
-                                             to_port=to_port,
-                                             cidr=cidr)
+            try:
+                nova.security_group_rules.create(security_group.id,
+                                                 ip_protocol=ip_protocol,
+                                                 from_port=from_port,
+                                                 to_port=to_port,
+                                                 cidr=cidr)
+            except OverLimit, ole:
+                if 'Security group rule already exists' in ole.message:
+                    return True
+                logger.exception(ole.__dict__)
+                raise
         return True
 
 

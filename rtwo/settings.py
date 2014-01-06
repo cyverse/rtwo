@@ -9,7 +9,8 @@ if not threepio.logger:
 from threepio import logger
 
 try:
-    from django.conf import settings
+    # Attempt initialization from atmosphere (Using secrets)
+    from django.conf.settings import secrets as settings
     dir(settings) # Force it to fail.
 except:
     settings = None

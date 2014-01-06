@@ -41,7 +41,7 @@ class Identity(BaseIdentity):
         self.credentials.update({'key': key, 'secret': secret})
 
     def __repr__(self):
-        return '%s Credentials: %s' % (self.__class__, self.credentials)
+        return '%s Credentials: %s' % (self.__class__, self.credentials.keys())
 
 
 
