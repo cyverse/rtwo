@@ -25,8 +25,8 @@ class Instance(object):
         self.image_id = node.extra['imageId']
         self.extra = node.extra
         self.ip = self.get_public_ip()
-        if Machine.machines.get((self.provider.name, self.image_id)):
-            self.machine = Machine.machines[(self.provider.name,
+        if Machine.machines.get((self.provider.identifier, self.image_id)):
+            self.machine = Machine.machines[(self.provider.identifier,
                                              self.image_id)]
 
     @classmethod
@@ -68,8 +68,8 @@ class Instance(object):
                 'name': self.name,
                 'ip': self.ip,
                 'provider': self.provider.name,
-                'size': self.size.json(),
-                'machine': self.machine.json()}
+                'size': 'None' if not self.size else self.size.json(),
+                'machine': 'None' if not self.machine else self.machine.json()}
 
 
 class AWSInstance(Instance):

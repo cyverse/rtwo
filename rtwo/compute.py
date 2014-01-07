@@ -8,6 +8,7 @@ from rtwo import settings
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.driver import EucaDriver, AWSDriver
 
+from libcloud.common.types import InvalidCredsError
 
 def _initialize_provider(provider, driverCls, **kwargs):
     try:
@@ -16,6 +17,9 @@ def _initialize_provider(provider, driverCls, **kwargs):
         machs = driver.list_machines()
         logger.debug("Caching %s machines for %s" % (len(machs), provider))
         driver.list_sizes()
+    except InvalidCredsError:
+        logger.warn("Credentials are incorrect for provider %s, identity %s"
+                % (provider, identity))
     except Exception as e:
         logger.exception(e)
 
