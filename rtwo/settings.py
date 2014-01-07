@@ -1,6 +1,6 @@
 """ rtwo.settings
 
-    Try to find usable settings. First try to use django's settings,
+    Try to find usable settings. First try to use atmosphere's secrets,
     if installed. Otherwise try to use test_settings.
 """
 import threepio
@@ -10,7 +10,7 @@ from threepio import logger
 
 try:
     # Attempt initialization from atmosphere (Using secrets)
-    from django.conf.settings import secrets as settings
+    from atmosphere.settings import secrets as settings
     dir(settings) # Force it to fail.
 except:
     settings = None
