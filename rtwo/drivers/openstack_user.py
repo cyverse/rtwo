@@ -81,7 +81,6 @@ class UserManager():
 
         rebuild: If True, delete all rules before adding rules in protocol_list
         """
-        import ipdb;ipdb.set_trace()
         sec_group = self.find_security_group(
                 username, password, project_name, security_group_name)
 
@@ -110,8 +109,9 @@ class UserManager():
         rules - a list of rules in the form:
                 [rule_id1, rule_id2, rule_id3, ...]
         """
+        sec_group = self.find_security_group(username, password,
+                                             project_name, security_group_name)
         nova = self.build_nova(username, password, project_name)
-        sec_group = nova.security_groups.find(name=security_group_name)
         for rule_id in rules:
             nova.security_group_rules.delete(rule_id)
 
@@ -122,8 +122,12 @@ class UserManager():
                 [(protocol, from_port, to_port, [CIDR]),
                  ...]
         """
+        sec_group = self.find_security_group(username, password,
+                                             project_name, security_group_name)
+        if not sec_group:
+            raise Exception("Could not find security group %s for project %s"
+                            % (security_group_name, project_name))
         nova = self.build_nova(username, password, project_name)
-        sec_group = nova.security_groups.find(name=security_group_name)
         for protocol in rule_list:
             self.add_rule_to_group(nova, protocol, sec_group)
 
@@ -159,7 +163,7 @@ class UserManager():
     def find_security_group(self, username, password, project_name,
                             security_group_name):
         nova = self.build_nova(username, password, project_name)
-        return nova.security_groups.find(name=security_group_name)
+        return nova.security_groups.find(description=security_group_name)
 
 
     def list_security_groups(self, username, password, project_name):

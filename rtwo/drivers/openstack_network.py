@@ -189,9 +189,10 @@ class NetworkManager(object):
         #logger.debug(floating_ips)
         return floating_ips
 
-    def rename_security_group(project):
+    def rename_security_group(self, project):
         security_group_resp = self.neutron.list_security_groups(
                 tenant_id=project.id)
+        default_group_id = None
         for sec_group in security_group_resp['security_groups']:
             if 'default' in sec_group['name']:
                 default_group_id = sec_group['id']
@@ -204,8 +205,8 @@ class NetworkManager(object):
                     {"security_group": {"description": project.name}})
             return sec_group
         except NeutronClientException:
-            logger.exception("Problem updating description of 'default'
-                    security group to %s" % project.name)
+            logger.exception("Problem updating description of 'default'"
+                             "security group to %s" % project.name)
             raise
 
 
