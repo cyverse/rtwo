@@ -66,62 +66,64 @@ class UserManager():
           * Monitoring of instances
           * Ops
         """
-        admin_role_created = self.add_project_member(
+        admin_role_created = self.add_project_membership(
                 projectname, self.keystone.username, admin_rolename)
         return admin_role_created
 
     def build_security_group(self, username, password, project_name,
-            protocol_list, securitygroup_name='default', rebuild=False, *args, **kwargs):
+             security_group_name, protocol_list, rebuild=False, *args, **kwargs):
         """
-        Given a working set of credentials and a list of protocols
+        Given a working set of credentials and a list of protocols/rules
+          Protocol/Rule: ("TCP/UDP/ICMP", from_port, to_port[, CIDR_to_allow])
 
-        Find the security group and ensure each rule is 'covered' by the
-        existing set of rules. If not, add a new rule to cover this case.
+        Retrieve existing security group and ensure each rule is created if it
+        doesnt already exist.
 
         rebuild: If True, delete all rules before adding rules in protocol_list
         """
-
+        import ipdb;ipdb.set_trace()
         sec_group = self.find_security_group(
-                username, password, project_name, securitygroup_name)
+                username, password, project_name, security_group_name)
 
         if not sec_group:
             raise Exception("No security group named %s found for %s"
-                        % (securitygroup_name, username))
+                        % (security_group_name, username))
 
         if rebuild:
             rule_ids = [rule['id'] for rule in sec_group.rules]
             self.delete_security_group_rules(
-                username, password, project_name, securitygroup_name, rule_ids)
+                username, password, project_name, security_group_name, rule_ids)
 
 
         # Add the rule, grab updated security group
         self.add_security_group_rules(
-            username, password, project_name, securitygroup_name, protocol_list)
+            username, password, project_name, security_group_name, protocol_list)
 
+        #Show the new security group (with added rules)
         sec_group = self.find_security_group(
-                username, password, project_name, securitygroup_name)
+                username, password, project_name, security_group_name)
         return sec_group
 
     def delete_security_group_rules(self, username, password, project_name,
-            securitygroup_name, rules):
+            security_group_name, rules):
         """
         rules - a list of rules in the form:
                 [rule_id1, rule_id2, rule_id3, ...]
         """
         nova = self.build_nova(username, password, project_name)
-        sec_group = nova.security_groups.find(name=securitygroup_name)
+        sec_group = nova.security_groups.find(name=security_group_name)
         for rule_id in rules:
             nova.security_group_rules.delete(rule_id)
 
     def add_security_group_rules(self, username, password, project_name,
-            securitygroup_name, rule_list):
+            security_group_name, rule_list):
         """
         rules - a list of rules in the form:
                 [(protocol, from_port, to_port, [CIDR]),
                  ...]
         """
         nova = self.build_nova(username, password, project_name)
-        sec_group = nova.security_groups.find(name=securitygroup_name)
+        sec_group = nova.security_groups.find(name=security_group_name)
         for protocol in rule_list:
             self.add_rule_to_group(nova, protocol, sec_group)
 
@@ -155,9 +157,9 @@ class UserManager():
 
 
     def find_security_group(self, username, password, project_name,
-                            securitygroup_name):
+                            security_group_name):
         nova = self.build_nova(username, password, project_name)
-        return nova.security_groups.find(name=securitygroup_name)
+        return nova.security_groups.find(name=security_group_name)
 
 
     def list_security_groups(self, username, password, project_name):
@@ -193,7 +195,7 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def add_project_member(self, groupname, username, rolename):
+    def add_project_membership(self, groupname, username, rolename):
         """
         Adds user(name) to group(name) with role(name)
 
@@ -201,19 +203,21 @@ class UserManager():
             raise keystoneclient.exceptions.NotFound
         """
         # Check for previous entry
-        if self.role_exists(username, groupname, rolename):
-            return
+        existing_role = self.check_membership(username, groupname, rolename)
+        if existing_role:
+            return existing_role
         # Create a new entry
         try:
             project = self.get_project(groupname)
             user = self.get_user(username)
             new_role = self.get_role(rolename)
             user_obj = project.add_user(user, new_role)
+            return new_role
         except Exception, e:
             logger.exception(e)
             raise
 
-    def role_exists(self, username, projectname, rolename):
+    def check_membership(self, username, projectname, rolename):
         project = self.get_project(projectname)
         user = self.get_user(username)
         new_role = self.get_role(rolename)
@@ -221,8 +225,8 @@ class UserManager():
         existing_roles = user.list_roles(project)
         for role in existing_roles:
             if role.name == rolename:
-                return True
-        return False
+                return role
+        return None
 
     def create_user(self, username, password=None, project=None):
         """

@@ -189,6 +189,26 @@ class NetworkManager(object):
         #logger.debug(floating_ips)
         return floating_ips
 
+    def rename_security_group(project):
+        security_group_resp = self.neutron.list_security_groups(
+                tenant_id=project.id)
+        for sec_group in security_group_resp['security_groups']:
+            if 'default' in sec_group['name']:
+                default_group_id = sec_group['id']
+                break
+        if not default_group_id:
+            raise Exception("Could not find the security group named 'default'")
+        try:
+            sec_group = self.neutron.update_security_group(
+                    default_group_id, 
+                    {"security_group": {"description": project.name}})
+            return sec_group
+        except NeutronClientException:
+            logger.exception("Problem updating description of 'default'
+                    security group to %s" % project.name)
+            raise
+
+
     ##Libcloud-Neutron Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, *args, **kwargs):
