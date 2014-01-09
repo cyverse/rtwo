@@ -448,13 +448,27 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return resp.status == httplib.ACCEPTED
 
     #quotas
+    def _establish_connection(self):
+        """
+        This function will contact keystone for authorization
+        and make an empty request to the server.
+
+        Doing this will provide self.connection.auth_user_info.
+        """
+        try:
+            self.connection.request('')
+        except:
+            #Will fail,but we MUST make a request to authenticate
+            pass
+
+    def _get_user_id(self):
+        if not self.connection.auth_user_info:
+            self._establish_connection()
+        return self.connection.auth_user_info.get('id')
+
     def _get_tenant_id(self):
         if not self.connection.request_path:
-            try:
-                #Will fail,but we MUST make a request to authenticate
-                self.connection.request('')
-            except:
-                pass
+            self._establish_connection()
         tenant_id = self.connection.request_path.split('/')[-1]
         return tenant_id
 
