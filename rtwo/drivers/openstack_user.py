@@ -7,6 +7,7 @@ import os
 
 from keystoneclient.exceptions import NotFound, ClientException
 from novaclient.exceptions import OverLimit
+from novaclient.exceptions import NotFound as NovaNotFound
 
 from threepio import logger
 
@@ -163,7 +164,15 @@ class UserManager():
     def find_security_group(self, username, password, project_name,
                             security_group_name):
         nova = self.build_nova(username, password, project_name)
-        return nova.security_groups.find(description=security_group_name)
+        try:
+            sec_group = nova.security_groups.find(description=security_group_name)
+        except NovaNotFound:
+            sec_group = nova.security_groups.list()
+        if sec_group:
+            return sec_group[0]
+        else:
+            raise Exception("Could not find any security groups for user %s"
+                            % username)
 
 
     def list_security_groups(self, username, password, project_name):
@@ -207,7 +216,7 @@ class UserManager():
             raise keystoneclient.exceptions.NotFound
         """
         # Check for previous entry
-        existing_role = self.check_membership(username, groupname, rolename)
+        existing_role = self.check_membership(groupname, username, rolename)
         if existing_role:
             return existing_role
         # Create a new entry
@@ -221,9 +230,11 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def check_membership(self, username, projectname, rolename):
-        project = self.get_project(projectname)
+    def check_membership(self, projectname, username, rolename):
         user = self.get_user(username)
+        project = self.get_project(projectname)
+        if not user or not project:
+            return None
         new_role = self.get_role(rolename)
         # Check for previous entry
         existing_roles = user.list_roles(project)
