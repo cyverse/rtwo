@@ -166,6 +166,7 @@ class UserManager():
         nova = self.build_nova(username, password, project_name)
         try:
             sec_group = nova.security_groups.find(description=security_group_name)
+            return sec_group
         except NovaNotFound:
             sec_group = nova.security_groups.list()
         if sec_group:
