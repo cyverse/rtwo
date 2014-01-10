@@ -903,6 +903,31 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         return floating_ip
 
+    def neutron_list_ips(self, node, *args, **kwargs):
+        """
+        List IP (Neutron)
+        There is no good way to interface libcloud + nova + neutron,
+        instead we call neutronclient directly..
+        Feel free to replace when a better mechanism comes along..
+        """
+
+        try:
+            network_manager = self.get_network_manager()
+            floating_ips = network_manager.list_floating_ips()
+        except NeutronClientException as q_error:
+            if q_error.status_code == 409:
+                #409 == Conflict
+                #Lets look through the message and determine why:
+                logger.info("Conflict stopped node from associating new "
+                            "floating IP. Message=%s" % q_error.message)
+            #Handle any conflicts that make sense and return, all others:
+            raise
+        ip_list = []
+        for f_ip in floating_ips:
+            if f_ip.get('instance_id') == node.id:
+                ip_list.append(f_ip)
+        return ip_list
+
     def get_network_manager(self):
         return NetworkManager.lc_driver_init(self)
 
