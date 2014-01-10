@@ -408,7 +408,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
             instance_token = instance.id
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s"
-        awesome_atmo_call += " --token=%s --name=%s"
+        awesome_atmo_call += " --token=%s --name=\"%s\""
         awesome_atmo_call += " --vnc_license=%s"
         awesome_atmo_call %= (
             atmo_init,
