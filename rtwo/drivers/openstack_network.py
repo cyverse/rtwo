@@ -147,8 +147,10 @@ class NetworkManager(object):
         instance_ports = self.list_ports(device_id=server_id)
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
-        assigned_ip = self.neutron.update_floatingip(new_ip['id'],
-                                                     body)['floatingip']
+        updated_ip = self.neutron.update_floatingip(new_ip['id'],
+                                                     body)
+        logger.info('updated_floatingip - %s:%s' % (server_id, updated_ip))
+        assigned_ip = updated_ip['floatingip']
         logger.info('Assigned Floating IP - %s:%s' % (server_id, assigned_ip))
         return assigned_ip
 

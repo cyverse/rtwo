@@ -11,14 +11,18 @@ from threepio import logger
 try:
     # Attempt initialization from atmosphere (Using secrets)
     from atmosphere.settings import secrets as settings
-    dir(settings) # Force it to fail.
+    dir(settings)  # Force it to fail.
 except:
     settings = None
     try:
-        from rtwo import test_settings as settings
-        dir(settings) # Force it to fail.
+        from rtwo import local_settings as settings
+        dir(settings)  # Force it to fail.
     except:
-        settings = None
+        try:
+            from rtwo import test_settings as settings
+            dir(settings)  # Force it to fail.
+        except:
+            settings = None
 
 
 if not settings:
@@ -30,13 +34,14 @@ if not settings:
     settings.OPENSTACK_AUTH_URL = ""
     settings.OPENSTACK_ADMIN_URL = ""
     settings.OPENSTACK_ADMIN_TENANT = ""
-    settings.OPENSTACK_DEFAULT_REGION = "ValhallaRegion"
-    settings.OPENSTACK_DEFAULT_ROUTER = "public_router"
+    settings.OPENSTACK_DEFAULT_REGION = ""
+    settings.OPENSTACK_DEFAULT_ROUTER = ""
     settings.EUCA_ADMIN_KEY = ""
     settings.EUCA_ADMIN_SECRET = ""
     settings.SERVER_URL = ""
     settings.INSTANCE_SERVICE_URL = ""
     settings.ATMOSPHERE_VNC_LICENSE = ""
+
 
 def set_settings(settings):
     global OPENSTACK_ADMIN_KEY, OPENSTACK_ADMIN_SECRET,\
@@ -67,6 +72,7 @@ OPENSTACK_ARGS = {
     'auth_url': OPENSTACK_ADMIN_URL,
     'region_name': OPENSTACK_DEFAULT_REGION
 }
+
 OPENSTACK_NETWORK_ARGS = {
     'auth_url': OPENSTACK_ADMIN_URL,
     'region_name': OPENSTACK_DEFAULT_REGION,

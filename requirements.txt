@@ -1,10 +1,10 @@
-requests==2.0.0
-paramiko==1.11.0
+requests==2.2
+paramiko==1.12
 apache-libcloud>=0.13.2
-git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2
-git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
-git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
-git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
-git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
-git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git#egg=pycommands-0.1
-git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4
+-e git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2
+-e git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
+-e git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
+-e git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
+-e git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
+-e git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git#egg=pycommands-0.1
+-e git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4
