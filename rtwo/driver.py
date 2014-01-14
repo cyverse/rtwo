@@ -426,11 +426,16 @@ class OSDriver(EshDriver, InstanceActionMixin):
             str_awesome_atmo_call,
             name='./deploy_call_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
+        script_rm_scripts = LoggedScriptDeployment(
+            "rm -rf ~/deploy_*",
+            name='./deploy_remove_scripts.sh',
+            logfile='/var/log/atmo/deploy.log')
         msd = MultiStepDeployment([script_init,
                                    script_deps,
                                    script_wget,
                                    script_chmod,
-                                   script_atmo_init])
+                                   script_atmo_init,
+                                   script_rm_scripts])
         kwargs.update({'deploy': msd})
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
