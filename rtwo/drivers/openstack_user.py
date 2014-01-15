@@ -181,12 +181,21 @@ class UserManager():
         sec_groups = nova.security_groups.list()
         return sec_groups
 
-    def find_rule(self, security_group, ip_protocol, from_port, to_port):
+    def find_rule(self, security_group, ip_protocol,
+                  from_port, to_port, cidr=None):
+        ip_protocol = ip_protocol.lower()
+        if ip_protocol == 'icmp':
+            if from_port < 0:
+                # ICMP shows None rather than -1, leave until inconsistency is
+                # fixed
+                from_port = None
         for rule in security_group.rules:
-            if rule['from_port'] <= from_port\
-            and rule['to_port'] >= to_port\
-            and rule['ip_protocol'] == ip_protocol:
-                return True
+            if rule['ip_protocol'] == ip_protocol\
+                    and (not cidr or rule['ip_range']['cidr'] == cidr):
+                #Potential match
+                if rule['from_port'] <= from_port\
+                        and rule['to_port'] >= to_port:
+                    return True
         return False
 
     def get_usergroup(self, username):
