@@ -38,3 +38,4 @@ nosetests.xml
 logs/*
 scripts/*
 rtwo/test_settings.py
+rtwo/local_settings.py
