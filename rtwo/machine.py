@@ -49,6 +49,24 @@ class Machine(BaseMachine):
         return machine
 
     @classmethod
+    def invalidate_provider_cache(cls, provider):
+        cls.machines[provider.identifier] = {}
+
+    @classmethod
+    def invalidate_machine_cache(cls, provider, machine):
+        """
+        DO NOT USE THIS METHOD
+        Removing a machine from the cache will have no affect on calls to
+        driver.list_machines(), to clear the cache you must use
+        invalidate_provider_cache
+        """
+        return cls.invalidate_provider_cache(provider)
+        alias = machine.id
+        provider_cache = cls.machines.get(provider.identifier, {})
+        provider_cache[alias] = None
+        cls.machines[provider.identifier] = provider_cache
+
+    @classmethod
     def add_to_cache(cls, provider, machine):
         alias = machine.id
         machine_dict = cls.machines.get(provider.identifier, {})
