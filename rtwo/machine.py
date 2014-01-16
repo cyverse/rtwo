@@ -43,9 +43,9 @@ class Machine(BaseMachine):
         self.name = lc_image.name
 
     @classmethod
-    def create_machine(cls, provider, lc_image):
+    def create_machine(cls, provider, lc_image, identifier):
         machine = provider.machineCls(lc_image)
-        cls.add_to_cache(provider, machine)
+        cls.add_to_cache(provider, machine, identifier)
         return machine
 
     @classmethod
@@ -67,18 +67,15 @@ class Machine(BaseMachine):
         cls.machines[provider.identifier] = provider_cache
 
     @classmethod
-    def add_to_cache(cls, provider, machine):
+    def add_to_cache(cls, provider, machine, identifier):
         alias = machine.id
-        machine_dict = cls.machines.get(provider.identifier, {})
+        machine_dict = cls.machines.get(identifier, {})
         machine_dict[alias] = machine
-        cls.machines[provider.identifier] = machine_dict
+        cls.machines[identifier] = machine_dict
 
     @classmethod
-    def get_cached_machine(cls, lc_image):
+    def get_cached_machine(cls, lc_image, identifier):
         alias = lc_image.id
-        #logger.info(cls.provider)
-        #logger.info(cls.provider.location)
-        identifier = cls.provider.identifier
         provider_machines = cls.machines.get(identifier)
         if not provider_machines:
             #logger.info("Created new machine dict for provider %s" % identifier)
@@ -88,7 +85,7 @@ class Machine(BaseMachine):
             #logger.info("Found machine for provider:%s - %s" %
             #    (identifier, machine))
             return machine
-        return cls.create_machine(cls.provider, lc_image)
+        return cls.create_machine(cls.provider, lc_image, identifier)
 
     @classmethod
     def get_cached_machines(cls, identifier, lc_list_images_method, *args, **kwargs):
@@ -100,8 +97,9 @@ class Machine(BaseMachine):
         provider_machines = cls.machines.get(identifier)
         if not provider_machines or not cls.lc_images:
             #Add new provider to the cache
+            import ipdb;ipdb.set_trace()
             cls.lc_images = lc_list_images_method(*args, **kwargs)
-        return map(cls.get_cached_machine, cls.lc_images)
+        return [cls.get_cached_machine(lc_image, identifier) for lc_image in cls.lc_images]
 
     def reset(self):
         Machine.reset()
