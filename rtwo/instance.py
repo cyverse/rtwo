@@ -17,7 +17,7 @@ class Instance(object):
 
     size = None
 
-    def __init__(self, node):
+    def __init__(self, node, provider):
         self._node = node
         self.id = node.id
         self.alias = node.id
@@ -25,13 +25,14 @@ class Instance(object):
         self.image_id = node.extra['imageId']
         self.extra = node.extra
         self.ip = self.get_public_ip()
+        self.provider = provider
         if Machine.machines.get((self.provider.identifier, self.image_id)):
             self.machine = Machine.machines[(self.provider.identifier,
                                              self.image_id)]
 
     @classmethod
-    def get_instances(cls, nodes):
-        return map(cls.provider.instanceCls, nodes)
+    def get_instances(cls, nodes, provider):
+        return [cls.provider.instanceCls(node, provider) for node in nodes]
 
     def get_public_ip(self):
         raise NotImplementedError()
@@ -76,8 +77,8 @@ class AWSInstance(Instance):
 
     provider = AWSProvider
 
-    def __init__(self, node):
-        Instance.__init__(self, node)
+    def __init__(self, node, provider):
+        Instance.__init__(self, node, provider)
         self.size = node.extra['instancetype']
         if Size.sizes.get((self.provider, self.size)):
             self.size = Size.sizes[(self.provider, self.size)]
@@ -110,14 +111,16 @@ class OSInstance(Instance):
 
     provider = OSProvider
 
-    def __init__(self, node):
-        Instance.__init__(self, node)
+    def __init__(self, node, provider):
+        Instance.__init__(self, node, provider)
         if not self.machine:
             try:
+                import ipdb;ipdb.set_trace()
                 image = node.driver.ex_get_image(node.extra['imageId'])
-                self.machine = self.provider.machineCls.get_cached_machine(image)
+                self.machine = self.provider.machineCls.get_cached_machine(
+                    image, self.provider.identifier)
             except Exception, no_image_found:
-                logger.warn("Instance %s is using an image %s that has been "
+                logger.exception("Instance %s is using an image %s that has been "
                             "deleted." % (node.id, node.extra['imageId']))
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
