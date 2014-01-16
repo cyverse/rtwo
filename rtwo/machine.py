@@ -97,7 +97,6 @@ class Machine(BaseMachine):
         provider_machines = cls.machines.get(identifier)
         if not provider_machines or not cls.lc_images:
             #Add new provider to the cache
-            import ipdb;ipdb.set_trace()
             cls.lc_images = lc_list_images_method(*args, **kwargs)
         return [cls.get_cached_machine(lc_image, identifier) for lc_image in cls.lc_images]
 
