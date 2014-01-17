@@ -3,6 +3,7 @@ Extension of libcloud's OpenStack Node Driver.
 """
 import binascii
 import copy
+import json
 import os
 import socket
 import sys
@@ -127,7 +128,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         adds support for cpu
         """
         size = super(OpenStack_Esh_NodeDriver, self)._to_size(api_size)
-        size.extra = {'cpu': api_size['vcpus']}
+        size.extra = {
+                'cpu': api_size['vcpus'],
+                'ephemeral': api_size.get('OS-FLV-EXT-DATA:ephemeral',0),
+                'public': api_size.get('os-flavor-access:is_public',True)
+                }
         return size
 
     def _to_image(self, api_machine):
@@ -1019,12 +1024,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @return: Key/Value metadata associated with node.
         @rtype: C{dict}
         """
-        if key:
-            return self.connection.request(
-                '/servers/%s/metadata/%s' % (node.id, key,),
-                method='GET',).object['meta']
-        else:
-            return super(OpenStack_Esh_NodeDriver, self).ex_get_metadata(node)
+        response = self.connection.request(
+            '/servers/%s/metadata%s' % (node.id,'/%s' if key else ''),
+            method='GET',)
+        metadata = response.object['metadata']
+        return metadata
 
     def ex_delete_metadata(self, node, key):
         """
@@ -1056,10 +1060,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @return: Key/Value metadata associated with an image.
         @rtype: C{dict}
         """
-        if key:
-            return self.connection.request(
-                '/images/%s/metadata/%s' % (image.id, key,),
-                method='GET',).object['meta']
+        response = self.connection.request(
+            '/images/%s/metadata/%s' % (image.id, key,),
+            method='GET',)
+        metadata = response.object['metadata']
+        return metadata
 
     def ex_get_image_metadata(self, image):
         """
@@ -1071,9 +1076,12 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @return: Key/Value metadata associated with an image.
         @rtype: C{dict}
         """
-        return self.connection.request(
+        response = self.connection.request(
             '/images/%s/metadata' % (image.id,),
-            method='GET',).object['metadata']
+            method='GET',)
+        metadata = response.object['metadata']
+        return metadata
+        
 
     def ex_set_image_metadata(self, image, metadata):
         """
@@ -1104,6 +1112,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         @rtype: C{dict}
         """
+        self._json_safe_meta_values(metadata)
         return self.connection.request(
             '/images/%s/metadata' % (image.id,), method='PUT',
             data={'metadata': metadata}
