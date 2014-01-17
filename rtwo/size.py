@@ -50,7 +50,7 @@ class Size(BaseSize):
             return cls.create_size(provider_identifier, lc_size)
 
     @classmethod
-    def get_sizes(cls, lc_list_sizes_method, provider_identifier):
+    def get_sizes(cls, provider_identifier, lc_list_sizes_method):
         if not cls.sizes or not cls.lc_sizes:
             cls.lc_sizes = lc_list_sizes_method()
         return sorted(
