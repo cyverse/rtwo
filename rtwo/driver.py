@@ -244,6 +244,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         Return the SizeClass representation of a libcloud NodeSize
         """
         return self.provider.sizeCls.get_sizes(
+            self.provider.identifier,
             super(EshDriver, self).list_sizes)
 
     def list_locations(self, *args, **kwargs):

@@ -27,12 +27,10 @@ class Size(BaseSize):
         self.ram = self._size.ram
         if hasattr(self._size, 'extra'):
             self.extra = self._size.extra
-            if 'cpu' in self.extra:
-                self.cpu = self.extra['cpu']
-            else:
-                self.cpu = 0
         else:
-            self.cpu = 0
+            self.extra = {}  # Placeholder Dict
+        self.cpu = self.extra.get('cpu',0)
+        self.ephemeral = self.extra.get('ephemeral',0)
 
     @classmethod
     def create_size(cls, provider, lc_size):
@@ -42,22 +40,22 @@ class Size(BaseSize):
         return size
 
     @classmethod
-    def get_size(cls, lc_size):
+    def get_size(cls, lc_size, provider_identifier):
         alias = lc_size.id
-        if cls.sizes.get((cls.provider, alias)):
+        if cls.sizes.get((provider_identifier, alias)):
             return cls.sizes[
-                (cls.provider, alias)
+                (provider_identifier, alias)
             ]
         else:
-            return cls.create_size(cls.provider, lc_size)
+            return cls.create_size(provider_identifier, lc_size)
 
     @classmethod
-    def get_sizes(cls, lc_list_sizes_method):
+    def get_sizes(cls, lc_list_sizes_method, provider_identifier):
         if not cls.sizes or not cls.lc_sizes:
             cls.lc_sizes = lc_list_sizes_method()
-        return sorted(map(
-            cls.get_size, cls.lc_sizes),
-            key=lambda s: s._size.ram)
+        return sorted(
+            [cls.get_size(size, provider_identifier) for size in cls.lc_sizes],
+            key=lambda s: (s._size.ram, s._size.cpu))
 
     def reset(self):
         Size.reset()
