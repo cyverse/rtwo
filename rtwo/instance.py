@@ -115,7 +115,6 @@ class OSInstance(Instance):
         Instance.__init__(self, node, provider)
         if not self.machine:
             try:
-                import ipdb;ipdb.set_trace()
                 image = node.driver.ex_get_image(node.extra['imageId'])
                 self.machine = self.provider.machineCls.get_cached_machine(
                     image, self.provider.identifier)
