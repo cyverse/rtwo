@@ -36,26 +36,26 @@ class Size(BaseSize):
     def create_size(cls, provider, lc_size):
         size = provider.sizeCls(lc_size)
         alias = size.id
-        cls.sizes[(provider, alias)] = size
+        cls.sizes[(provider.identifier, alias)] = size
         return size
 
     @classmethod
-    def get_size(cls, lc_size, provider_identifier):
+    def get_size(cls, lc_size, provider):
         alias = lc_size.id
-        if cls.sizes.get((provider_identifier, alias)):
+        if cls.sizes.get((provider.identifier, alias)):
             return cls.sizes[
-                (provider_identifier, alias)
+                (provider.identifier, alias)
             ]
         else:
-            return cls.create_size(provider_identifier, lc_size)
+            return cls.create_size(provider, lc_size)
 
     @classmethod
-    def get_sizes(cls, provider_identifier, lc_list_sizes_method):
+    def get_sizes(cls, provider, lc_list_sizes_method):
         if not cls.sizes or not cls.lc_sizes:
             cls.lc_sizes = lc_list_sizes_method()
         return sorted(
-            [cls.get_size(size, provider_identifier) for size in cls.lc_sizes],
-            key=lambda s: (s._size.ram, s._size.cpu))
+            [cls.get_size(size, provider) for size in cls.lc_sizes],
+            key=lambda s: (s._size.ram, s.cpu))
 
     def reset(self):
         Size.reset()
