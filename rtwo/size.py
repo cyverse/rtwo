@@ -82,11 +82,13 @@ class Size(BaseSize):
     def json(self):
         return {
             'id': self._size.name,
+            'provider': self.provider.identifier,
             'alias': self._size.id,
             'name': self._size.name,
             'cpu': self.cpu,
             'ram': self._size.ram,
-            'disk': self._size.disk,
+            'root': self._size.disk,
+            'disk': self.ephemeral,
             'bandwidth': self._size.bandwidth,
             'price': self._size.price}
 

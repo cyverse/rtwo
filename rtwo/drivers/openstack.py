@@ -128,6 +128,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         adds support for cpu
         """
         size = super(OpenStack_Esh_NodeDriver, self)._to_size(api_size)
+        size._api = api_size
         size.extra = {
                 'cpu': api_size['vcpus'],
                 'ephemeral': api_size.get('OS-FLV-EXT-DATA:ephemeral',0),

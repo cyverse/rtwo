@@ -124,8 +124,9 @@ class OSInstance(Instance):
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
         if not self.size:
+            #TODO: This should not be a lookup.. right?
             size = node.driver.ex_get_size(node.extra['flavorId'])
-            self.size = self.provider.sizeCls.get_size(size)
+            self.size = self.provider.sizeCls.get_size(size, provider)
 
     def get_status(self):
         """
