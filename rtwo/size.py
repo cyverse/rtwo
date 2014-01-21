@@ -40,6 +40,15 @@ class Size(BaseSize):
         return size
 
     @classmethod
+    def lookup_size(cls, alias, provider):
+        if cls.sizes.get((provider.identifier, alias)):
+            return cls.sizes[
+                (provider.identifier, alias)
+            ]
+        else:
+            return None
+
+    @classmethod
     def get_size(cls, lc_size, provider):
         alias = lc_size.id
         if cls.sizes.get((provider.identifier, alias)):

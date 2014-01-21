@@ -257,11 +257,13 @@ class EshDriver(LibcloudDriver, MetaMixin):
         logger.debug(str(args))
         logger.debug(str(kwargs))
         return self.provider.instanceCls(
-            super(EshDriver, self).create_instance(*args, **kwargs))
+            super(EshDriver, self).create_instance(*args, **kwargs),
+            self.provider)
 
     def deploy_instance(self, *args, **kwargs):
         return self.provider.instanceCls(
-            super(EshDriver, self).deploy_instance(*args, **kwargs))
+            super(EshDriver, self).deploy_instance(*args, **kwargs),
+            self.provider)
 
     def reboot_instance(self, *args, **kwargs):
         return super(EshDriver, self).reboot_instance(*args, **kwargs)
@@ -390,10 +392,20 @@ class OSDriver(EshDriver, InstanceActionMixin):
             'touch /var/log/atmo/deploy.log\n'
             'fi',
             name="./deploy_init_log.sh")
+        #These requirements are for Editors, Shell-in-a-box
+        do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
+                    + "language-pack-en make gcc g++ gettext texinfo "\
+                    + "autoconf automake"
+        do_centos = "yum install -y emacs vim-enhanced wget make "\
+                    + "gcc gettext texinfo autoconf automake python-simplejson"
         script_deps = LoggedScriptDeployment(
-            "apt-get update;apt-get install -y emacs vim wget language-pack-en"
-            + " make gcc g++ gettext texinfo autoconf automake",
-            name="./deploy_aptget_update.sh",
+            "distro_cat=`cat /etc/*-release`\n"
+            + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
+            + do_ubuntu
+            + "\nelse if [[ $distro_cat == *CentOS* ]];then\n"
+            + do_centos
+            + "\nfi\nfi",
+            name="./deploy_deps.sh",
             logfile="/var/log/atmo/deploy.log")
         script_wget = LoggedScriptDeployment(
             "wget -O %s %s%s" % (atmo_init, settings.SERVER_URL,

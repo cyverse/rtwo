@@ -74,6 +74,19 @@ class Machine(BaseMachine):
         cls.machines[identifier] = machine_dict
 
     @classmethod
+    def lookup_cached_machine(cls, alias, identifier):
+        provider_machines = cls.machines.get(identifier)
+        if not provider_machines:
+            #logger.info("Created new machine dict for provider %s" % identifier)
+            provider_machines = {}
+        machine = provider_machines.get(alias)
+        if machine:
+            #logger.info("Found machine for provider:%s - %s" %
+            #    (identifier, machine))
+            return machine
+        return None
+
+    @classmethod
     def get_cached_machine(cls, lc_image, identifier):
         alias = lc_image.id
         provider_machines = cls.machines.get(identifier)

@@ -113,20 +113,29 @@ class OSInstance(Instance):
 
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
+
+        import ipdb;ipdb.set_trace()
+        if not self.machine:
+            # Attempt to do a cache lookup first!
+            self.machine = self.provider.machineCls.lookup_cached_machine(
+                node.extra['imageId'], self.provider.identifier)
         if not self.machine:
             try:
+                # Image not in cache, try and add it
                 image = node.driver.ex_get_image(node.extra['imageId'])
-                self.machine = self.provider.machineCls.get_cached_machine(
-                    image, self.provider.identifier)
+                self.machine = self.provider.machineCls.create_machine(
+                    self.provider, image, self.provider.identifier)
             except Exception, no_image_found:
                 logger.exception("Instance %s is using an image %s that has been "
                             "deleted." % (node.id, node.extra['imageId']))
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
         if not self.size:
-            #TODO: This should not be a lookup.. right?
+            self.size = self.provider.sizeCls.lookup_size(
+                node.extra['flavorId'], provider)
+        if not self.size:
             size = node.driver.ex_get_size(node.extra['flavorId'])
-            self.size = self.provider.sizeCls.get_size(size, provider)
+            self.size = self.provider.sizeCls.create_size(provider, size)
 
     def get_status(self):
         """
