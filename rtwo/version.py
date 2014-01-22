@@ -6,7 +6,7 @@ from os.path import abspath, dirname
 
 VERSION = (0, 1, 8, 'dev', 5)
 
-git_match = "(?P<git_flag>git://)\S*#egg="\
+git_match = "(?P<opt_editable_flag>-e )?(?P<git_flag>git://)\S*#egg="\
             "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
             "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
             # Version is optional

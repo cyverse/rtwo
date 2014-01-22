@@ -3,28 +3,28 @@ import setuptools
 from rtwo.version import get_version, read_requirements
 
 readme = open('README.md').read()
-#dependencies, requirements = read_requirements('requirements.txt')
-dependencies = [
-'git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient',
-'git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient',
-'git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient',
-'git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient',
-'git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive'
-'git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git',
-'git+git://github.com/jmatt/threepio.git',
-]
-requirements = [
-  'requests==2.2',
-  'paramiko==1.12',
-  'apache-libcloud',
-  'python-glanceclient',
-  'python-keystoneclient',
-  'python-novaclient',
-  'python-neutronclient',
-  'rfive',
-  'pycommands',
-  'threepio',
-]
+dependencies, requirements = read_requirements('requirements.txt')
+#dependencies = [
+#'git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient',
+#'git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient',
+#'git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient',
+#'git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient',
+#'git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive'
+#'git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git',
+#'git+git://github.com/jmatt/threepio.git',
+#]
+#requirements = [
+#  'requests==2.2',
+#  'paramiko==1.11',
+#  'apache-libcloud',
+#  'python-glanceclient',
+#  'python-keystoneclient',
+#  'python-novaclient',
+#  'python-neutronclient',
+#  'rfive==0.1.4',
+#  'pycommands',
+#  'threepio',
+#]
 long_description = """
 rtwo %s
 A unified interface into multiple cloud providers.
