@@ -114,7 +114,6 @@ class OSInstance(Instance):
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
 
-        import ipdb;ipdb.set_trace()
         if not self.machine:
             # Attempt to do a cache lookup first!
             self.machine = self.provider.machineCls.lookup_cached_machine(
