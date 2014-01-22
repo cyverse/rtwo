@@ -40,6 +40,7 @@ def read_requirements(requirements_file):
             if not r:
                 r = egg_regex.search(line)
             if not r:
+                print 'Failed to identify requirement:%s' % line
                 continue
             group = r.groupdict()
             if not group:
