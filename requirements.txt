@@ -1,7 +1,7 @@
 requests==2.2
 paramiko==1.11
 apache-libcloud>=0.13.2
--e git+git://github.com/jmatt/threepio.git#egg=threepio-0.1.2
+git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
