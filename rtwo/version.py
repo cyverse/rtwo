@@ -6,9 +6,11 @@ from os.path import abspath, dirname
 
 VERSION = (0, 1, 8, 'dev', 5)
 
-git_match = "(?P<opt_editable_flag>-e )?(?P<git_flag>git://)\S*#egg="\
-            "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
+git_match = "(?P<opt_editable_flag>-e )?"\
+            "(?P<git_flag>git\+[a-z]+://)\S*/(?P<repo_name>.*)\.git"\
+            "(?P<opt_egg_flag>#egg=)?(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])?"\
             "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
+
             # Version is optional
 egg_match = "(?P<egg>\S.*[a-zA-Z])"\
             "(?P<opt_version_flag>[-=]+)?"\
@@ -17,9 +19,9 @@ egg_match = "(?P<egg>\S.*[a-zA-Z])"\
 def read_requirements(requirements_file):
     """
     Requirements files use two specific formats:
-    packagename==1.3.1
+    packagename[==1.3.1]
     and
-    git+git://github.com/abc/xyz.git#egg=packagename-1.3.1
+    [-e ]git+[http/https/git]://github.com/abc/xyz.git[#egg=packagename[-1.3.1]]
 
     This function converts git to the bottom format
     and
@@ -45,15 +47,18 @@ def read_requirements(requirements_file):
             group = r.groupdict()
             if not group:
                 continue
-            #Dependencies will match git_flag
             if group.get('git_flag'):
                 dependencies.append(line)
-            #Requirements should be added for each line
+            #Add a version-specific requirement
             if group.get('opt_version') and group.get('egg'):
                 install_requires.append("%s==%s%s" % (group['egg'], group['opt_version'],
                         '-dev' if group.get('dev_flag') else ''))
+            #Add a generic egg requirement
             elif group.get('egg'):
                 install_requires.append("%s" % (group['egg']))
+            #Infer generic egg requirement from dependency missing #egg=
+            elif group.get('repo_name'):
+                install_requires.append("%s" % (group['repo_name']))
     return (dependencies, install_requires)
 
 
