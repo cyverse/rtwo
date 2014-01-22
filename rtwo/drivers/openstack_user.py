@@ -144,7 +144,6 @@ class UserManager():
         else:
             raise Exception("Rule tuple did not match expected output:"
                             " (protocol, from_port, to_port, [CIDR])")
-        
         if not self.find_rule(security_group, ip_protocol,
                           from_port, to_port):
             try:
@@ -184,17 +183,18 @@ class UserManager():
     def find_rule(self, security_group, ip_protocol,
                   from_port, to_port, cidr=None):
         ip_protocol = ip_protocol.lower()
-        if ip_protocol == 'icmp':
-            if from_port < 0:
-                # ICMP shows None rather than -1, leave until inconsistency is
-                # fixed
-                from_port = None
         for rule in security_group.rules:
-            if rule['ip_protocol'] == ip_protocol\
+            if rule['ip_protocol'].lower() == ip_protocol\
                     and (not cidr or rule['ip_range']['cidr'] == cidr):
                 #Potential match
                 if rule['from_port'] <= from_port\
                         and rule['to_port'] >= to_port:
+                    return True
+                if rule['from_port'] == None\
+                        and rule['to_port'] >= to_port:
+                            # The ICMP rule on grizzly-openstack is:
+                            # {'from_port': -1, ...} but on havana it is:
+                            # {'from_port': None, ...} so check for both
                     return True
         return False
 
