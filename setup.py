@@ -4,6 +4,9 @@ from rtwo.version import get_version, read_requirements
 
 readme = open('README.md').read()
 dependencies, requirements = read_requirements('requirements.txt')
+
+#print dependencies
+#print requirements
 #dependencies = [
 #'git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient',
 #'git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient',

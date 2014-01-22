@@ -1,6 +1,7 @@
+pip>=1.4,<1.5
 requests==2.2
 paramiko==1.12
-apache-libcloud>=0.14.0-beta3
+apache-libcloud==0.14
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
