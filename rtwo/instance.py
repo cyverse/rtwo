@@ -82,7 +82,9 @@ class AWSInstance(Instance):
 
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
-        self.size = node.extra['instance_type']
+        self.size = node.extra.get('instance_type')
+        if not self.size:
+            self.size = node.extra['instancetype']
         if Size.sizes.get((self.provider, self.size)):
             self.size = Size.sizes[(self.provider, self.size)]
 

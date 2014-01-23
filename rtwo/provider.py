@@ -83,7 +83,6 @@ class Provider(BaseProvider):
         if not identifier:
             identifier = self.location
         self.identifier = identifier
-        logger.info("identifier set to : %s" % identifier)
 
     def set_options(self, provider_credentials):
         """
