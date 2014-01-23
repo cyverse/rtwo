@@ -132,8 +132,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
             node.public_ips.append(node.extra.get('dns_name', '0.0.0.0'))
             node.private_ips.append(node.extra.get('private_dns', '0.0.0.0'))
             return node
-        node = super(Eucalyptus_Esh_NodeDriver, self)._to_node(api_node,
-                                                               groups)
+        node = super(Eucalyptus_Esh_NodeDriver, self)._to_node(api_node)
         if owner:
             node.extra['ownerId'] = owner
         node = _set_ips(node)

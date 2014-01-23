@@ -22,7 +22,10 @@ class Instance(object):
         self.id = node.id
         self.alias = node.id
         self.name = node.name
-        self.image_id = node.extra['imageId']
+        #TODO: Remove when we are sure no-one else is using 'the old way'
+        self.image_id = node.extra.get('imageId')
+        if not self.image_id:
+            self.image_id = node.extra.get('image_id')
         self.extra = node.extra
         self.ip = self.get_public_ip()
         self.provider = provider
@@ -79,7 +82,7 @@ class AWSInstance(Instance):
 
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
-        self.size = node.extra['instancetype']
+        self.size = node.extra['instance_type']
         if Size.sizes.get((self.provider, self.size)):
             self.size = Size.sizes[(self.provider, self.size)]
 
