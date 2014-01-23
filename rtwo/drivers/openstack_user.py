@@ -184,7 +184,7 @@ class UserManager():
                   from_port, to_port, cidr=None):
         ip_protocol = ip_protocol.lower()
         for rule in security_group.rules:
-            if rule['ip_protocol'].lower() == ip_protocol\
+            if rule['ip_protocol'] and rule['ip_protocol'].lower() == ip_protocol\
                     and (not cidr or rule['ip_range']['cidr'] == cidr):
                 #Potential match
                 if rule['from_port'] <= from_port\
