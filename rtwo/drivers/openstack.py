@@ -718,6 +718,32 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         for f_ip in self.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 self.ex_deallocate_floating_ip(f_ip['id'])
+    
+    def ex_add_fixed_ip(self, server, network_id):
+        """
+        """
+        try:
+            server_resp = self.connection.request(
+                '/servers/%s/action' % server.id,
+                method='POST',
+                data={'addFixedIp': {'networkId': network_id}})
+            return server_resp.object
+        except Exception, e:
+            raise
+
+
+    def ex_remove_fixed_ip(self, server, fixed_ip_addr):
+        """
+        """
+        try:
+            server_resp = self.connection.request(
+                '/servers/%s/action' % server.id,
+                method='POST',
+                data={'removeFixedIp': {'address': fixed_ip_addr}})
+            return server_resp.object
+        except Exception, e:
+            raise
+
 
     def ex_associate_floating_ip(self, server, address, **kwargs):
         """
@@ -725,7 +751,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         try:
             server_resp = self.connection.request(
-                '/servers/%s/action' % server,
+                '/servers/%s/action' % server.id,
                 method='POST',
                 data={'addFloatingIp': {'address': address}})
             return server_resp.object
@@ -793,7 +819,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_add_security_group(self, server, sec_group, **kwargs):
         try:
             server_resp = self.connection.request(
-                '/servers/%s/action' % server,
+                '/servers/%s/action' % server.id,
                 method='POST',
                 data={'addSecurityGroup': {'address': address}})
             return server_resp.object
@@ -803,7 +829,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_remove_security_group(self, server, sec_group, **kwargs):
         try:
             server_resp = self.connection.request(
-                '/servers/%s/action' % server,
+                '/servers/%s/action' % server.id,
                 method='POST',
                 data={'removeSecurityGroup': {'address': address}})
             return server_resp.object
