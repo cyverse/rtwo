@@ -100,7 +100,8 @@ class NetworkManager(object):
         #self.set_router_gateway(user_neutron, '%s-router' % project_name)
         return (network, subnet)
 
-    def delete_project_network(self, username, project_name):
+    def delete_project_network(self, username, project_name,
+                               remove_network=True):
         """
         remove_interface_router
         delete_subnet
@@ -110,7 +111,8 @@ class NetworkManager(object):
                                      self.default_router,
                                      '%s-subnet' % project_name)
         self.delete_subnet(self.neutron, '%s-subnet' % project_name)
-        self.delete_network(self.neutron, '%s-net' % project_name)
+        if remove_network:
+            self.delete_network(self.neutron, '%s-net' % project_name)
 
     def disassociate_floating_ip(self, server_id):
         """
