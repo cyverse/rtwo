@@ -50,6 +50,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_resume_node": ["Resume the node"],
         "ex_start_node": ["Starts the node"],
         "ex_stop_node": ["Stops the node"],
+        "ex_vnc_console": ["Return a novnc token and url for a node."],
         "create_volume": ["Create volume"],
         "delete_volume": ["Delete volume"],
         "list_volumes": ["List all volumes"],
@@ -82,7 +83,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     Object builders -- Convert the native dict in to a Libcloud object
     """
     def _to_volumes(self, el, glance=False):
-        return [self._to_volume(volume, glance=glance) for volume in el['volumes']]
+        return [self._to_volume(volume, glance=glance)
+                for volume in el['volumes']]
 
     def _to_volume(self, api_volume, glance=False):
         if glance:
@@ -130,10 +132,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         size = super(OpenStack_Esh_NodeDriver, self)._to_size(api_size)
         size._api = api_size
         size.extra = {
-                'cpu': api_size['vcpus'],
-                'ephemeral': api_size.get('OS-FLV-EXT-DATA:ephemeral',0),
-                'public': api_size.get('os-flavor-access:is_public',True)
-                }
+            'cpu': api_size['vcpus'],
+            'ephemeral': api_size.get('OS-FLV-EXT-DATA:ephemeral', 0),
+            'public': api_size.get('os-flavor-access:is_public', True)
+        }
         return size
 
     def _to_image(self, api_machine):
@@ -159,8 +161,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         network_manager = NetworkManager.lc_driver_init(self)
         floating_ip_list = network_manager.list_floating_ips()
         return [self._to_node(
-                    api_node, floating_ips=floating_ip_list) 
-                    for api_node in el['servers']]
+            api_node, floating_ips=floating_ip_list)
+            for api_node in el['servers']]
 
     def _to_node(self, api_node, floating_ips=[]):
         """
@@ -453,6 +455,15 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         resp = self._node_action(node, 'resume')
         return resp.status == httplib.ACCEPTED
 
+    def ex_vnc_console(self, node):
+        """
+        Return a novnc token and url for a node.
+        """
+        resp = self._node_action(node,
+                                 'os-getVNCConsole',
+                                 type='novnc')
+        return json.loads(resp.body)['console']['url']
+
     #quotas
     def _establish_connection(self):
         """
@@ -620,13 +631,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             lc_conn.get_service_catalog()
         #Change base_url, make request, update base_url
         if lc_conn._ex_force_base_url:
-            old_endpoint = lc_conn._ex_force_base_url 
+            old_endpoint = lc_conn._ex_force_base_url
         else:
             old_endpoint = lc_conn.get_endpoint()
         try:
             new_service = lc_conn.service_catalog.get_endpoint(
-                                service_type='volume',name='cinder',
-                                region=lc_conn.service_region)
+                service_type='volume', name='cinder',
+                region=lc_conn.service_region)
             lc_conn._ex_force_base_url = new_service['publicURL']
             server_resp = lc_conn.request(
                 '/volumes/detail?all_tenants=1',
@@ -634,7 +645,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return self._to_volumes(server_resp.object, glance=True)
         finally:
             lc_conn._ex_force_base_url = old_endpoint
-
 
     def ex_list_volume_attachments(self, node):
         """
@@ -718,7 +728,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         for f_ip in self.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 self.ex_deallocate_floating_ip(f_ip['id'])
-    
+
     def ex_add_fixed_ip(self, server, network_id):
         """
         """
@@ -731,10 +741,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except Exception, e:
             raise
 
-
     def ex_remove_fixed_ip(self, server, fixed_ip_addr):
-        """
-        """
         try:
             server_resp = self.connection.request(
                 '/servers/%s/action' % server.id,
@@ -743,7 +750,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return server_resp.object
         except Exception, e:
             raise
-
 
     def ex_associate_floating_ip(self, server, address, **kwargs):
         """
@@ -1052,7 +1058,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @rtype: C{dict}
         """
         response = self.connection.request(
-            '/servers/%s/metadata%s' % (node.id,'/%s' if key else ''),
+            '/servers/%s/metadata%s' % (node.id, '/%s' if key else ''),
             method='GET',)
         metadata = response.object['metadata']
         return metadata
@@ -1108,7 +1114,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET',)
         metadata = response.object['metadata']
         return metadata
-        
 
     def ex_set_image_metadata(self, image, metadata):
         """
