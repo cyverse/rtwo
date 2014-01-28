@@ -455,13 +455,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         resp = self._node_action(node, 'resume')
         return resp.status == httplib.ACCEPTED
 
-    def ex_vnc_console(self, node):
+    def ex_vnc_console(self, node, vnc_type='novnc'):
         """
         Return a novnc token and url for a node.
+        Optional vnc_types:
+        * novnc (Default - For Web Clients)
+        * xvpvnc (For Java Clients)
         """
         resp = self._node_action(node,
                                  'os-getVNCConsole',
-                                 type='novnc')
+                                 type=vnc_type)
         return json.loads(resp.body)['console']['url']
 
     #quotas
