@@ -474,6 +474,11 @@ class OSDriver(EshDriver, InstanceActionMixin):
         if not kwargs.get('timeout'):
             kwargs.update({'timeout': 120})
 
+        #Scrub deploy steps if they exist.
+        deploy = kwargs.get('deploy')
+        if hasattr(deploy, "steps"):
+            deploy.steps = [s for s in deploy.steps if s is not None]
+
         logger.info("Attempting deployment to node")
         node = instance
         #Get the libcloud node, not the eshInstance
