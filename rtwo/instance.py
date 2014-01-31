@@ -85,8 +85,8 @@ class AWSInstance(Instance):
         self.size = node.extra.get('instance_type')
         if not self.size:
             self.size = node.extra['instancetype']
-        if Size.sizes.get((self.provider, self.size)):
-            self.size = Size.sizes[(self.provider, self.size)]
+        if Size.sizes.get((provider.identifier, self.size)):
+            self.size = Size.sizes[(provider.identifier, self.size)]
 
     def get_public_ip(self):
         if self.extra \
