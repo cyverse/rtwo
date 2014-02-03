@@ -448,6 +448,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         resp = self._node_action(node, 'suspend')
         return resp.status == httplib.ACCEPTED
 
+    def ex_reset_network(self, node):
+        """
+        Resume a node.
+        """
+        resp = self._node_action(node, 'resetNetwork')
+        return resp.status == httplib.ACCEPTED
+
     def ex_resume_node(self, node):
         """
         Resume a node.

@@ -79,6 +79,10 @@ class BaseDriver():
         raise NotImplementedError
 
     @abstractmethod
+    def reset_network(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
     def reboot_instance(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -164,8 +168,11 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
     def deploy_instance(self, *args, **kwargs):
         return self._connection.deploy_node(*args, **kwargs)
 
+    def reset_network(self, *args, **kwargs):
+        return self._connection.reset_network(*args, **kwargs)
+
     def reboot_instance(self, *args, **kwargs):
-        return self._connection.reboot_node(*args, **kwargs)
+        return self._connection.ex_reset_network(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
         return self._connection.destroy_node(*args, **kwargs)
@@ -264,6 +271,9 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return self.provider.instanceCls(
             super(EshDriver, self).deploy_instance(*args, **kwargs),
             self.provider)
+
+    def reset_network(self, *args, **kwargs):
+        return super(EshDriver, self).reset_network(*args, **kwargs)
 
     def reboot_instance(self, *args, **kwargs):
         return super(EshDriver, self).reboot_instance(*args, **kwargs)
@@ -530,8 +540,11 @@ class OSDriver(EshDriver, InstanceActionMixin):
     def resize_instance(self, *args, **kwargs):
         return self._connection.ex_resize(*args, **kwargs)
 
+    def reset_network(self, *args, **kwargs):
+        return self._connection.reset_network(*args, **kwargs)
+
     def reboot_instance(self, *args, **kwargs):
-        return self._connection.reboot_node(*args, **kwargs)
+        return self._connection.ex_reset_network(*args, **kwargs)
 
     def confirm_resize_instance(self, *args, **kwargs):
         return self._connection.ex_confirm_resize(*args, **kwargs)
@@ -548,14 +561,16 @@ class OSDriver(EshDriver, InstanceActionMixin):
     def _clean_floating_ip(self, *args, **kwargs):
         return self._connection.ex_clean_floating_ip(**kwargs)
 
-    def _is_suspended_instance(self, instance):
+    def _is_inactive_instance(self, instance):
         #Other things may need to be tested
         status = instance.extra['status']
         task = instance.extra['task']
         power = instance.extra['power']
-        if status in ['suspended',]:
+        if status in ['paused',
+                'suspended','stopped','shutoff',]:
             return True
-        if status in ['active',] and task in ['suspending',]:
+        if task in ['suspending','shutting-off',
+                    ]:
             return True
         return False
 
@@ -565,6 +580,9 @@ class OSDriver(EshDriver, InstanceActionMixin):
         task = instance.extra['task']
         power = instance.extra['power']
         if status in ['active','build','resize']:
+            return True
+        if task in ['resuming', 'powering-on',
+                    'verify-resize', 'resize_reverting', 'resize_confirming']:
             return True
         return False
         #if status == 'active':

@@ -364,9 +364,18 @@ class NetworkManager(object):
                     logger.warn("Unable to create cidr for subnet "
                                 "for user: %s" % username)
                     inc += 1
+            except NeutronClientException as nce:
+                if "overlap" in nce.message:
+                    # expected output. hash already use, add one and try another subnet.
+                    inc += 1
+                else:
+                    logger.exception("Unable to create subnet for user: %s" % username)
+                    inc += 1
+                if not get_unique_number:
+                    logger.warn("No get_unique_number method "
+                                "provided for user: %s" % username)
             except Exception as e:
-                logger.exception(e)
-                logger.warn("Unable to create subnet for user: %s" % username)
+                logger.exception("Unable to create subnet for user: %s" % username)
                 if not get_unique_number:
                     logger.warn("No get_unique_number method "
                                 "provided for user: %s" % username)

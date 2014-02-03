@@ -4,7 +4,7 @@ rtwo version.
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
-VERSION = (0, 1, 8, 'dev', 6)
+VERSION = (0, 1, 9, 'dev', 0)
 
 git_match = "(?P<opt_editable_flag>-e )?"\
             "(?P<git_flag>git\+[a-z]+://)\S*/(?P<repo_name>.*)\.git"\
