@@ -3,8 +3,8 @@ Atmosphere service meta.
 
 """
 import sys
-
 from abc import ABCMeta
+from math import floor
 
 from threepio import logger
 
@@ -170,58 +170,74 @@ class OSMeta(Meta):
                                 **provider_creds)
         return admin_driver
 
-    def _get_max_cpu(self, esh_size, cpu_total):
-        # CPUs go by many different, provider-specific names..
-        if hasattr(esh_size._size, 'cpu'):
-            cpu_count = esh_size._size.cpu
-        elif hasattr(esh_size._size, 'vcpus'):
-            cpu_count = esh_size._size.vcpus
+    def total_remaining(self, max_, total, used, size):
+        """
+        Given max, total used and size calculate and return a
+        2-tuple with the (max, remaining).
+        """
+        if size != 0:
+            return (floor(max_), floor((total - used) / size))
         else:
-            logger.warn("Could not find a CPU value for size %s" % esh_size)
+            return (floor(max_), sys.maxint)
+
+    def _cpu_stats(self, size, cpu_total, cpu_used):
+        # CPUs go by many different, provider-specific names..
+        if hasattr(size._size, 'cpu'):
+            cpu_count = size._size.cpu
+        elif hasattr(size._size, 'vcpus'):
+            cpu_count = size._size.vcpus
+        else:
+            logger.warn("Could not find a CPU value for size %s" % size)
             cpu_count = -1
         if cpu_count > 0:
-            max_by_cpu = float(cpu_total)/float(esh_size.cpu) 
+            max_by_cpu = float(cpu_total)/float(size.cpu)
         else:
+            # I don't know about this?
             max_by_cpu = sys.maxint
-        return max_by_cpu
+        return self.total_remaining(max_by_cpu, cpu_total,
+                                    cpu_used, cpu_count)
 
-    def _get_max_ram(self, esh_size, ram_total):
-        if esh_size._size.ram > 0:
-            max_by_ram = float(ram_total) / float(esh_size._size.ram)
+    def _ram_stats(self, size, ram_total, ram_used):
+        if size._size.ram > 0:
+            max_by_ram = float(ram_total) / float(size._size.ram)
         else:
             max_by_ram = sys.maxint
-        return max_by_ram
+        return self.total_remaining(max_by_ram, ram_total, ram_used, size.ram)
 
-    def _get_max_disk(self, esh_size, disk_total):
-        if esh_size._size.disk > 0:
-            max_by_disk = float(disk_total) / float(esh_size._size.disk)
+    def _disk_stats(self, size, disk_total, disk_used):
+        if size._size.disk > 0:
+            max_by_disk = float(disk_total) / float(size._size.disk)
         else:
             max_by_disk = sys.maxint
-        return max_by_disk
+        return self.total_remaining(max_by_disk, disk_total,
+                                    disk_used, size._size.disk)
 
     def occupancy(self):
         """
         Add Occupancy data to NodeSize.extra
         """
-        occupancy_data = self.admin_driver._connection\
-                                          .ex_hypervisor_statistics()
-        all_instances = self.all_instances()
+        occ = self.admin_driver._connection\
+                               .ex_hypervisor_statistics()
         sizes = self.admin_driver.list_sizes()
         for size in sizes:
-            max_by_cpu = self._get_max_cpu(size, occupancy_data['vcpus'])
-            max_by_ram = self._get_max_ram(size, occupancy_data['memory_mb'])
-            max_by_disk = self._get_max_disk(size, occupancy_data['local_gb'])
-
-            limiting_value = int(min(
-                max_by_cpu,
-                max_by_ram,
-                max_by_disk))
-            num_running = len([i for i in all_instances
-                               if i.extra['flavorId'] == size.id])
-            if not 'occupancy' in size.extra:
-                size.extra['occupancy'] = {}
-            size.extra['occupancy']['total'] = limiting_value
-            size.extra['occupancy']['remaining'] = limiting_value - num_running
+            total_cpu, remaining_cpu = self._cpu_stats(size,
+                                                      occ['vcpus'],
+                                                      occ['vcpus_used'])
+        
+            total_ram, remaining_ram = self._ram_stats(size,
+                                                       occ['memory_mb'],
+                                                       occ['memory_mb_used'])
+            total_disk, remaining_disk = self._disk_stats(size,
+                                                         occ['local_gb'],
+                                                         occ['local_gb_used'])
+            remaining = min(remaining_cpu,
+                            remaining_ram,
+                            remaining_disk)
+            total = min(total_cpu,
+                        total_ram,
+                        total_disk)
+            size.extra['occupancy'] = {'total': total,
+                                       'remaining': remaining}
         return sizes
 
     def add_metadata_deployed(self, machine):
