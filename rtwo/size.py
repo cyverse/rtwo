@@ -64,7 +64,7 @@ class Size(BaseSize):
             cls.lc_sizes = lc_list_sizes_method()
         return sorted(
             [cls.get_size(size, provider) for size in cls.lc_sizes],
-            key=lambda s: (s._size.ram, s.cpu))
+            key=lambda s: (s.cpu, s._size.ram))
 
     def reset(self):
         Size.reset()

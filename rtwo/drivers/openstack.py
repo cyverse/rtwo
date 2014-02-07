@@ -735,9 +735,12 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Check for floating IPs without an instance ID
         and remove them from the driver
         """
+        count = 0
         for f_ip in self.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 self.ex_deallocate_floating_ip(f_ip['id'])
+                count += 1
+        return count
 
     def ex_add_fixed_ip(self, server, network_id):
         """
