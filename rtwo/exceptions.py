@@ -4,6 +4,10 @@ Atmosphere service exceptions.
 """
 
 
+class NonZeroDeploymentException(Exception):
+    pass
+
+
 class ServiceException(Exception):
     pass
 

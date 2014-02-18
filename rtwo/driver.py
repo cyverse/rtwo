@@ -580,19 +580,13 @@ class OSDriver(EshDriver, InstanceActionMixin):
         task = instance.extra['task']
         power = instance.extra['power']
         if status in ['active','build','resize']:
+            if task in ['deleting', 'suspending']:
+                return False
             return True
         if task in ['resuming', 'powering-on',
                     'verify-resize', 'resize_reverting', 'resize_confirming']:
             return True
         return False
-        #if status == 'active':
-        #    #Active, not being deleted or suspended
-        #    if task not in ['deleting', 'suspending']:
-        #        return True
-        #elif (status == 'build' or status == 'resize') and task != 'deleting':
-        #    #The instance is moving toward an active state
-        #    return True
-        #return False
 
 
 class AWSDriver(EshDriver):

@@ -19,6 +19,7 @@ from libcloud.compute.types import Provider, NodeState, DeploymentError,\
 from libcloud.compute.base import StorageVolume,\
     NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
     NodeAuthPassword, NodeDriver
+from libcloud.compute.deployment import MultiStepDeployment, ScriptDeployment
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
@@ -26,6 +27,7 @@ from neutronclient.common.exceptions import NeutronClientException
 
 from rfive.fabricSSH import FabricSSHClient
 
+from rtwo.exceptions import NonZeroDeploymentException
 from rtwo.drivers.openstack_network import NetworkManager
 
 
@@ -292,6 +294,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if password:
             node.extra['password'] = password
 
+        deploy_task = kwargs['deploy']
         ssh_username = kwargs.get('ssh_username', 'root')
         ssh_alternate_usernames = kwargs.get('ssh_alternate_usernames', [])
         ssh_port = kwargs.get('ssh_port', 22)
@@ -303,14 +306,14 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         for username in ([ssh_username] + ssh_alternate_usernames):
             try:
                 self._connect_and_run_deployment_script(
-                    task=kwargs['deploy'], node=node,
+                    task=deploy_task, node=node,
                     ssh_hostname=ip_addresses[0], ssh_port=ssh_port,
                     ssh_username=username, ssh_password=password,
                     ssh_key_file=ssh_key_file, ssh_timeout=ssh_timeout,
                     timeout=timeout, max_tries=max_tries)
             except Exception as exc:
                 # Try alternate username
-                # Todo: Need to fix paramiko so we can catch a more specific
+                # TODO: Need to fix paramiko so we can catch a more specific
                 # exception
                 logger.exception("Could not connect to SSH on IP address %s" %
                                  ip_addresses[0])
@@ -323,7 +326,27 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if deploy_error is not None:
             raise DeploymentError(node=node, original_exception=deploy_error,
                                   driver=self)
-
+        if isinstance(deploy_task, ScriptDeployment):
+            deploy_steps = [deploy_task]
+        elif isinstance(deploy_task, MultiStepDeployment):
+            deploy_steps = deploy_task.steps
+        else:
+            #No additional validation necessary for other types of deployment.
+            return node
+        #Additional validation for Script Deployments
+        failed_steps = []
+        for deploy_step in deploy_steps:
+            if deploy_step.exit_status != 0:
+                failed_steps.append(
+                    "Script:%s returned a Non-Zero exit"
+                    " status:%s. Stdout:%r Stderr:%r"
+                    % (deploy_step.name, deploy_step.exit_status,
+                       deploy_step.stdout, deploy_step.stderr))
+        if failed_steps:
+            raise DeploymentError(
+                original_exception=NonZeroDeploymentException(
+                    str(failed_steps)),
+                node=node, driver=self)
         return node
 
     def _ssh_client_connect(self, ssh_client, wait_period=1.5, timeout=300):
@@ -405,6 +428,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         tries = 0
         while tries < max_tries:
             try:
+                #import ipdb;ipdb.set_trace()
                 node = task.run(node, ssh_client)
             except Exception:
                 e = sys.exc_info()[1]
