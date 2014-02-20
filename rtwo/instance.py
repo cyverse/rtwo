@@ -11,6 +11,8 @@ from rtwo.size import Size
 
 class Instance(object):
 
+    owner = None
+
     provider = None
 
     machine = None
@@ -18,6 +20,7 @@ class Instance(object):
     size = None
 
     def __init__(self, node, provider):
+        self.owner = None # Should be defined per-provider
         self._node = node
         self.id = node.id
         self.alias = node.id
@@ -67,13 +70,29 @@ class Instance(object):
         return str(self)
 
     def json(self):
+        size_str = None
+        machine_str = None
+        if not self.size:
+            size_str = "None"
+        elif type(self.size) == str:
+            size_str = self.size
+        else:
+            size_str = self.size.json()
+        if not self.machine:
+            machine_str = "None"
+        elif type(self.machine) == str:
+            machine_str = self.machine
+        else:
+            machine_str = self.machine.json()
+
         return {'id': self.id,
                 'alias': self.alias,
                 'name': self.name,
                 'ip': self.ip,
                 'provider': self.provider.name,
-                'size': 'None' if not self.size else self.size.json(),
-                'machine': 'None' if not self.machine else self.machine.json()}
+                'size': size_str,
+                'machine': machine_str
+            }
 
 
 class AWSInstance(Instance):
@@ -82,6 +101,7 @@ class AWSInstance(Instance):
 
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
+        self.owner = node.extra.get('ownerId')
         self.size = node.extra.get('instance_type')
         if not self.size:
             self.size = node.extra['instancetype']
@@ -118,6 +138,9 @@ class OSInstance(Instance):
 
     def __init__(self, node, provider):
         Instance.__init__(self, node, provider)
+
+        #Unfortunately we can't get the tenant_name..
+        self.owner = node.extra.get('tenantId')
 
         if not self.machine:
             # Attempt to do a cache lookup first!

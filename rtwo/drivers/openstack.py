@@ -29,6 +29,7 @@ from rfive.fabricSSH import FabricSSHClient
 
 from rtwo.exceptions import NonZeroDeploymentException
 from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.drivers.openstack_user import UserManager
 
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
@@ -205,6 +206,53 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             'object': api_node
         })
         return node
+
+    def _copy_connection(self, **update_args):
+        """
+        Use this to copy the connectionObject
+        """
+        copied_args = {
+            "user_id": self.connection.user_id,
+            "key": self.key,
+            "secret": self.secret,
+            "secure": self.connection.secure, 
+            "host":self.connection.host,
+            "port":self.connection.port,
+            "timeout":self.connection.timeout,
+            "ex_force_base_url":self._ex_force_base_url,
+            "ex_force_auth_url":self._ex_force_auth_url,
+            "ex_force_auth_version":self._ex_force_auth_version,
+            "ex_force_auth_token":self._ex_force_auth_token,
+            "ex_tenant_name": self._ex_tenant_name,
+            "ex_force_service_type":self._ex_force_service_type,
+            "ex_force_service_name":self._ex_force_service_name,
+            "ex_force_service_region":self._ex_force_service_region,
+            }
+        copied_args.update(update_args)
+        new_connection = self.__class__(**copied_args)
+        return new_connection
+
+    def _make_keystone_connection(self):
+        """
+        Swap base url to make a request against keystone instead of nova
+        """
+        return self._copy_connection(
+                ex_force_service_type='identity',
+                ex_force_service_name='keystone')
+
+    def _keystone_list_tenants(self):
+        keystone_driver = self._make_keystone_connection()
+        tenant_resp = keystone_driver.connection.request('/tenants').object
+        all_tenants = tenant_resp['tenants']
+        return all_tenants
+
+    def _keystone_get_tenant(self, tenant_id):
+        all_tenants = self._keystone_list_tenants()
+        for tenant in all_tenants:
+            if tenant['id'] == tenant_id:
+                return tenant
+        return None
+
 
     def create_node(self, **kwargs):
         """
@@ -1002,6 +1050,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             if f_ip.get('instance_id') == node.id:
                 ip_list.append(f_ip)
         return ip_list
+
+    def get_user_manager(self):
+        return UserManager.lc_driver_init(self)
 
     def get_network_manager(self):
         return NetworkManager.lc_driver_init(self)
