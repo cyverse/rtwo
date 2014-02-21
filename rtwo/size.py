@@ -25,6 +25,7 @@ class Size(BaseSize):
         self.name = self._size.name
         self.price = self._size.price
         self.ram = self._size.ram
+        self.disk = self._size.disk
         if hasattr(self._size, 'extra'):
             self.extra = self._size.extra
         else:

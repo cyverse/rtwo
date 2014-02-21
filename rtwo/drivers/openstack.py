@@ -750,6 +750,33 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET')
         return server_resp.object
 
+    def ex_lookup_hypervisor_id_by_name(self, hypervisor_name):
+        matches = [hv['id'] for hv in self.ex_list_hypervisor_nodes()
+                   if hv['hypervisor_hostname'] == hypervisor_name]
+        if not matches:
+            raise ValueError("Hypervisor name %s has no corresponding ID.")
+        return matches[0]
+
+    def ex_list_instances_on_node(self, node_id):
+        if type(node_id) == str:
+            node_id = self.ex_lookup_hypervisor_id_by_name(node_id)
+        return self.connection.request(
+            "/os-hypervisors/%s/servers" % node_id).object['hypervisors']
+
+    def ex_list_hypervisor_nodes(self):
+        return self.connection.request(
+            "/os-hypervisors").object['hypervisors']
+
+    def ex_detail_hypervisor_nodes(self):
+        return self.connection.request(
+            "/os-hypervisors/detail").object['hypervisors']
+
+    def ex_detail_hypervisor_node(self, node_id):
+        if type(node_id) == str:
+            node_id = self.ex_lookup_hypervisor_id_by_name(node_id)
+        return self.connection.request(
+            "/os-hypervisors/%s" % node_id).object['hypervisor']
+
     def ex_hypervisor_statistics(self):
         return self.connection.request(
             "/os-hypervisors/statistics").object['hypervisor_statistics']
