@@ -45,7 +45,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                      "public_ips as extra",
                      "keypairs as extra",
                      "user/tenant as extra"],
-        "create_node": ["Create node with ssh_key", "ssh_key"],
+        "create_node": ["Create node with ssh_key", "ssh_key",
+                        "availability_zone"],
         "ex_create_node_with_network": ["Create node with floating IP"
                                         " and ssh_key", "ssh_key"],
         "ex_deploy_to_node": ["Deploy to existing node"],
@@ -253,15 +254,39 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 return tenant
         return None
 
+    def _create_args_to_params(self, node, **kwargs):
+        server_params = super(OpenStack_Esh_NodeDriver, self)\
+                ._create_args_to_params(node, **kwargs)
+        if 'ex_availability_zone' in kwargs:
+            server_params['availability_zone'] = kwargs['ex_availability_zone']
+        return server_params
 
     def create_node(self, **kwargs):
         """
         Helpful arguments to set:
         ex_keyname : Name of existing public key
+        ex_availability_zone : Name of host to launch on
         """
-        node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
+        server_params = self._create_args_to_params(None, **kwargs)
+
+        resp = self.connection.request("/servers",
+                                       method='POST',
+                                       data={'server': server_params})
+
+        create_response = resp.object['server']
+        server_resp = self.connection.request(
+            '/servers/%s' % create_response['id'])
+        server_object = server_resp.object['server']
+
+        # adminPass is not always present
+        # http://docs.openstack.org/essex/openstack-compute/admin/
+        # content/configuring-compute-API.html#d6e1833
+        server_object['adminPass'] = create_response.get('adminPass', None)
+
+        node = self._to_node(server_object)
 
         #NOTE: This line is needed to authenticate via SSH_Keypair instead!
+        #TODO: Refactor this and make use of adminPass or Password..
         node.extra['password'] = None
 
         return node
