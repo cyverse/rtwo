@@ -349,6 +349,16 @@ class UserManager():
         except NotFound:
             return None
 
+    def get_project_by_id(self, project_id):
+        """
+        Retrieve project
+        Invalid groupname : raise keystoneclient.exceptions.NotFound
+        """
+        try:
+            return find(self.keystone_projects(), id=project_id)
+        except NotFound:
+            return None
+
     def get_project(self, groupname):
         """
         Retrieve project

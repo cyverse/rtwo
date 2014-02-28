@@ -650,6 +650,20 @@ class AWSDriver(EshDriver):
         # created, username)
         return instance
 
+    def list_machines(self, *args, **kwargs):
+        """
+        This openstack specific implementation caches machine lists
+        using tenant_name as the identifier
+
+        Return the MachineClass representation of a libcloud NodeImage
+        """
+        identifier = self.identity.credentials.get('ex_tenant_name')
+        if not identifier:
+            identifier = self.provider.identitifier
+        return self.provider.machineCls.get_cached_machines(
+            identifier,
+            super(EshDriver, self).list_machines, *args, **kwargs)
+
     def filter_machines(self, machines, black_list=[]):
         """
         Filtered machines:
