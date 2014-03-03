@@ -150,6 +150,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         #logger.debug(api_machine)
         image = super(OpenStack_Esh_NodeDriver, self)._to_image(api_machine)
         image.extra['state'] = api_machine['status'].lower()
+        image.extra['api'] = api_machine
         return image
 
     def neutron_set_ips(self, node, floating_ips):

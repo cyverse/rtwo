@@ -15,7 +15,6 @@ def _initialize_provider(provider, driverCls, **kwargs):
         identity = provider.identityCls(provider, **kwargs)
         driver = driverCls(provider, identity)
         machs = driver.list_machines()
-        logger.debug("Caching %s machines for %s" % (len(machs), provider))
         driver.list_sizes()
     except InvalidCredsError:
         logger.warn("Credentials are incorrect for provider %s, identity %s"

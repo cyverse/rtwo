@@ -108,9 +108,13 @@ class Machine(BaseMachine):
         If using only one provider, this variable can be set to any value.
         """
         provider_machines = cls.machines.get(identifier)
+        if not provider_machines:
+            logger.debug("Cache miss for identifier - %s" % identifier)
         if not provider_machines or not cls.lc_images:
             #Add new provider to the cache
             cls.lc_images = lc_list_images_method(*args, **kwargs)
+            logger.debug("Caching %s machines for identifier:%s" %
+                         (len(cls.lc_images), identifier))
         return [cls.get_cached_machine(lc_image, identifier) for lc_image in cls.lc_images]
 
     def reset(self):

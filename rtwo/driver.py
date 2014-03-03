@@ -154,6 +154,9 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
         return self._connection.list_nodes()
 
     def list_machines(self, *args, **kwargs):
+        logger.debug("Call made to list_machines: %s - %s"
+                     % (self.provider.identifier,
+                     self.identity.credentials['key']))
         return self._connection.list_images()
 
     def list_sizes(self, *args, **kwargs):
@@ -376,6 +379,23 @@ class OSDriver(EshDriver, InstanceActionMixin):
         self._connection._ex_force_service_region =\
         self._connection.connection.service_region =\
             provider.options.get('region_name')
+
+    def list_machines(self, *args, **kwargs):
+        """
+        This openstack specific implementation caches machine lists
+        using tenant_name as the identifier
+
+        Return the MachineClass representation of a libcloud NodeImage
+        """
+        identifier = self.identity.credentials.get('ex_tenant_name')
+        if not identifier:
+            logger.debug("Could not find tenant_name, "
+                         "falling back to provider identifier")
+            identifier = self.provider.identitifier
+        return self.provider.machineCls.get_cached_machines(
+            identifier,
+            super(EshDriver,self).list_machines, *args, **kwargs)
+
 
     def deploy_init_to(self, *args, **kwargs):
         """
@@ -650,19 +670,6 @@ class AWSDriver(EshDriver):
         # created, username)
         return instance
 
-    def list_machines(self, *args, **kwargs):
-        """
-        This openstack specific implementation caches machine lists
-        using tenant_name as the identifier
-
-        Return the MachineClass representation of a libcloud NodeImage
-        """
-        identifier = self.identity.credentials.get('ex_tenant_name')
-        if not identifier:
-            identifier = self.provider.identitifier
-        return self.provider.machineCls.get_cached_machines(
-            identifier,
-            super(EshDriver, self).list_machines, *args, **kwargs)
 
     def filter_machines(self, machines, black_list=[]):
         """
