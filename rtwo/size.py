@@ -102,6 +102,32 @@ class Size(BaseSize):
             'bandwidth': self._size.bandwidth,
             'price': self._size.price}
 
+class MockSize(Size):
+    def __init__(self, size_id, provider):
+        self.provider = provider
+        self._size = None
+        self.name = "Unknown Size %s" % size_id
+        self.alias = size_id
+        self.id = size_id
+        self.price = None
+        self.ram = 0
+        self.disk = 0
+        self.extra = {}  # Placeholder Dict
+        self.cpu = 0
+        self.ephemeral = 0
+
+    def json(self):
+        return {
+            'id': self.id,
+            'provider': self.provider.identifier,
+            'alias': self.id,
+            'name': 'MockSize %s' % self.id,
+            'cpu': self.cpu,
+            'ram': '',
+            'root': '',
+            'disk': '',
+            'bandwidth': '',
+            'price': ''}
 
 class EucaSize(Size):
 

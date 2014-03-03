@@ -6,7 +6,7 @@ from threepio import logger
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.machine import Machine, MockMachine
-from rtwo.size import Size
+from rtwo.size import Size, MockSize
 
 
 class Instance(object):
@@ -147,23 +147,40 @@ class OSInstance(Instance):
             self.machine = self.provider.machineCls.lookup_cached_machine(
                 node.extra['imageId'], self.provider.identifier)
         if not self.machine:
-            try:
-                # Image not in cache, try and add it
-                image = node.driver.ex_get_image(node.extra['imageId'])
-                self.machine = self.provider.machineCls.create_machine(
-                    self.provider, image, self.provider.identifier)
-            except Exception, no_image_found:
-                logger.exception("Instance %s is using an image %s that has been "
-                            "deleted." % (node.id, node.extra['imageId']))
-                self.machine = MockMachine(node.extra['imageId'],
-                                           self.provider)
+            self.machine = MockMachine(node.extra['imageId'], self.provider)
         if not self.size:
             self.size = self.provider.sizeCls.lookup_size(
                 node.extra['flavorId'], provider)
         if not self.size:
-            size = node.driver.ex_get_size(node.extra['flavorId'])
-            self.size = self.provider.sizeCls.create_size(provider, size)
+            self.size = MockSize(node.extra['flavorId'],
+                                       self.provider)
 
+    def _get_flavor_for_instance(self, node):
+        try:
+            flavor = node.driver.ex_get_size(node.extra['flavorId'])
+            # Add size to cache
+            self.size = self.provider.sizeCls.create_size(
+                self.provider, flavor)
+            return self.size
+        except Exception, no_flavor_found:
+            self.size = MockSize(node.extra['flavorId'], self.provider)
+            logger.exception("Instance %s is using a size %s"
+                             "that has been deleted."
+                             % (node.id, node.extra['flavorId']))
+            return None
+
+    def _get_image_for_instance(self, node):
+        try:
+            # Image not in cache, try and add it
+            image = node.driver.ex_get_image(node.extra['imageId'])
+            self.machine = self.provider.machineCls.create_machine(
+                self.provider, image, self.provider.identifier)
+            return self.machine
+        except Exception, no_image_found:
+            logger.exception("Instance %s is using an image %s that has been "
+                        "deleted." % (node.id, node.extra['imageId']))
+            self.machine = MockMachine(node.extra['imageId'], self.provider)
+            return self.machine
     def get_status(self):
         """
         TODO: If openstack: Use extra['task'] and extra['power']
