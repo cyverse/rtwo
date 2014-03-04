@@ -36,19 +36,20 @@ class NetworkManager(object):
 
     ##Admin-specific methods##
     def project_network_map(self):
-        named_subnets = self.find_subnet('-subnet', contains=True)
-        users_with_networks = [net['name'].replace('-subnet', '')
-                               for net in named_subnets]
+        named_networks = self.find_network('-net', contains=True)
+        users_with_networks = [net['name'].replace('-net', '')
+                               for net in named_networks]
         user_map = {}
         for user in users_with_networks:
             my_network = self.find_network('%s-net' % user)[0]
-            my_subnet = self.find_subnet('%s-subnet' % user)[0]
+            my_subnet = self.find_subnet('%s-subnet' % user)
             my_router_interface = self.find_router_interface(
                 self.default_router,
                 '%s-subnet' % user)
             user_map[user] = {'network': my_network,
                               'subnet': my_subnet,
                               'public_interface': my_router_interface}
+            logger.debug("Added user %s" % user_map[user])
         return user_map
 
     def get_user_neutron(self, username, password,
@@ -468,8 +469,8 @@ class NetworkManager(object):
     def remove_router_interface(self, neutron, router_name, subnet_name):
         router_id = self.get_router_id(neutron, router_name)
         subnet_id = self.get_subnet_id(neutron, subnet_name)
-        #TODO: Devote some time to ensuring the interface router exists BEFORE
-        #making a call to remove it
+        #TODO: Ensure no instances/IPs are using the interface
+        # && raise an error if they try!
         if router_id and subnet_id:
             try:
                 return neutron\
