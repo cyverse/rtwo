@@ -40,15 +40,37 @@ class NetworkManager(object):
         users_with_networks = [net['name'].replace('-net', '')
                                for net in named_networks]
         user_map = {}
+        networks = self.neutron.list_networks()
+        subnets = self.neutron.list_subnets()
+        routers = self.neutron.list_routers()
+        ports = self.neutron.list_ports()
         for user in users_with_networks:
-            my_network = self.find_network('%s-net' % user)[0]
-            my_subnet = self.find_subnet('%s-subnet' % user)
-            my_router_interface = self.find_router_interface(
-                self.default_router,
-                '%s-subnet' % user)
-            user_map[user] = {'network': my_network,
-                              'subnet': my_subnet,
-                              'public_interface': my_router_interface}
+            my_nets = [net for net in networks['networks'] if '%s-net' % user in net['name']]
+            net_ids = [n['id'] for n in my_nets]
+            my_subnets = [subnet for subnet in subnets['subnets'] if '%s-subnet' % user in subnet['name']]
+            subnet_ids = [s['id'] for s in my_subnets]
+            my_ports = []
+            for port in ports['ports']:
+                if 'dhcp' in port['device_owner'] or \
+                        'compute:None' in port['device_owner']:
+                    #Skip these ports..
+                    continue
+                if port['network_id'] in net_ids:
+                    my_ports.append(port)
+                    continue
+                fixed_ips = port['fixed_ips']
+                for fixed_ip in fixed_ips:
+                    if fixed_ip['subnet_id'] in subnet_ids:
+                        my_ports.append(port)
+                        break
+            #TODO: Can you have more than one of these?
+            if len(my_nets) == 1:
+                my_nets = my_nets[0]
+            if len(my_subnets) == 1:
+                my_subnets = my_subnets[0]
+            user_map[user] = {'network': my_nets,
+                              'subnet': my_subnets,
+                              'public_interface': my_ports}
             logger.debug("Added user %s" % user_map[user])
         return user_map
 
@@ -164,7 +186,7 @@ class NetworkManager(object):
         if not name:
             name = 'fixed_ip_%s' % (server_id,)
         port_obj = self.neutron.create_port(
-                {'port': 
+                {'port':
                     {
                         'network_id':network_id,
                         'device_id':server_id,
@@ -206,7 +228,7 @@ class NetworkManager(object):
             raise Exception("Could not find the security group named 'default'")
         try:
             sec_group = self.neutron.update_security_group(
-                    default_group_id, 
+                    default_group_id,
                     {"security_group": {"description": project.name}})
             return sec_group
         except NeutronClientException:

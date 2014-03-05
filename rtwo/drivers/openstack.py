@@ -416,7 +416,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     " status:%s. Stdout:%r Stderr:%r"
                     % (deploy_step.name, deploy_step.exit_status,
                        deploy_step.stdout, deploy_step.stderr))
-        if failed_steps:
+        if failed_steps and not kwargs.get('non_zero_deploy'):
             raise DeploymentError(
                 original_exception=NonZeroDeploymentException(
                     str(failed_steps)),
