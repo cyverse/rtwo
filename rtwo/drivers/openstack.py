@@ -163,11 +163,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return
 
     def _to_nodes(self, el):
-        network_manager = NetworkManager.lc_driver_init(self)
-        floating_ip_list = network_manager.list_floating_ips()
-        return [self._to_node(
-            api_node, floating_ips=floating_ip_list)
-            for api_node in el['servers']]
+        return [self._to_node(api_node) for api_node in el['servers']]
 
     def _to_node(self, api_node, floating_ips=[]):
         """
@@ -179,6 +175,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             Set up ips in the api_node so _to_node may call its super.
             """
             try:
+                node.public_ips = []
+                node.private_ips = []
                 public_ips, private_ips = [], []
                 for (label, ip_addrs) in api_node['addresses'].items():
                     for ip in ip_addrs:
