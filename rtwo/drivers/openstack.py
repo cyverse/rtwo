@@ -190,6 +190,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                  if ip not in node.public_ips]
                 [node.private_ips.append(ip) for ip in private_ips
                  if ip not in node.private_ips]
+                #In this special case, it may be a matter of time before the ip
+                #is available.. Atmosphere provides a hint with 'public-ip'
+                if node.private_ips and not node.public_ips \
+                        and 'public-ip' in api_node['metadata']:
+                    node.public_ips = [api_node['metadata']['public-ip']]
             except (IndexError, KeyError) as no_ip:
                 logger.warn("No IP for node:%s" % api_node['id'])
 
@@ -500,7 +505,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         tries = 0
         while tries < max_tries:
             try:
-                #import ipdb;ipdb.set_trace()
                 node = task.run(node, ssh_client)
             except Exception:
                 e = sys.exc_info()[1]
