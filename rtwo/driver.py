@@ -175,7 +175,7 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
         return self._connection.reset_network(*args, **kwargs)
 
     def reboot_instance(self, *args, **kwargs):
-        return self._connection.ex_reset_network(*args, **kwargs)
+        return self._connection.reboot_node(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
         return self._connection.destroy_node(*args, **kwargs)
@@ -564,7 +564,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
         return self._connection.reset_network(*args, **kwargs)
 
     def reboot_instance(self, *args, **kwargs):
-        return self._connection.ex_reset_network(*args, **kwargs)
+        return self._connection.reboot_node(*args, **kwargs)
 
     def confirm_resize_instance(self, *args, **kwargs):
         return self._connection.ex_confirm_resize(*args, **kwargs)
