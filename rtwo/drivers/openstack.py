@@ -294,6 +294,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra['password'] = None
 
         return node
+    def reboot_node(self, node, reboot_type='SOFT'):
+        """
+        Options for 'reboot_type': SOFT, HARD
+        """
+        return self._reboot_node(node, reboot_type=reboot_type)
 
     def ex_create_node_with_network(self, **kwargs):
         """
