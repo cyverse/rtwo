@@ -180,7 +180,9 @@ class OSMeta(Meta):
         else:
             return (floor(max_), sys.maxint)
 
-    def _cpu_stats(self, size, cpu_total, cpu_used):
+    def _cpu_stats(self, size, cpu_total, cpu_used, cpu_overcommit):
+        if cpu_overcommit > 0:
+            cpu_used = cpu_used - cpu_overcommit
         # CPUs go by many different, provider-specific names..
         if hasattr(size._size, 'cpu'):
             cpu_count = size._size.cpu
@@ -197,14 +199,18 @@ class OSMeta(Meta):
         return self.total_remaining(max_by_cpu, cpu_total,
                                     cpu_used, cpu_count)
 
-    def _ram_stats(self, size, ram_total, ram_used):
+    def _ram_stats(self, size, ram_total, ram_used, ram_overcommit):
+        if ram_overcommit > 0:
+            ram_used = ram_used - ram_overcommit
         if size._size.ram > 0:
             max_by_ram = float(ram_total) / float(size._size.ram)
         else:
             max_by_ram = sys.maxint
         return self.total_remaining(max_by_ram, ram_total, ram_used, size.ram)
 
-    def _disk_stats(self, size, disk_total, disk_used):
+    def _disk_stats(self, size, disk_total, disk_used, disk_overcommit):
+        if disk_overcommit > 0:
+            disk_used = disk_used - disk_overcommit
         if size._size.disk > 0:
             max_by_disk = float(disk_total) / float(size._size.disk)
         else:
@@ -212,24 +218,52 @@ class OSMeta(Meta):
         return self.total_remaining(max_by_disk, disk_total,
                                     disk_used, size._size.disk)
 
-    def occupancy(self):
+    def _calculate_overcommits(self, sizes, remove_totals):
+        instances = self.admin_driver.list_all_instances()
+        size_map = {size.id:size for size in sizes}
+        for instance in instances:
+            if instance.extra['status'] in ['suspended','shutoff']:
+                #oc == OverCommited
+                oc_size = size_map.get(instance.size.id)
+                if not oc_size:
+                    logger.warn("Size %s NOT found in list of sizes. Cannot"
+                                " remove instance %s from calculation"
+                                % (instance.size.id, instance.id))
+                    continue
+                remove_totals['cpu'] = remove_totals['cpu'] + oc_size.cpu
+                remove_totals['ram'] = remove_totals['ram'] + oc_size.ram
+                remove_totals['disk'] = remove_totals['disk'] + oc_size.disk
+        return remove_totals
+
+    def occupancy(self, overcommited=False):
         """
         Add Occupancy data to NodeSize.extra
         """
         occ = self.admin_driver._connection\
                                .ex_hypervisor_statistics()
+        remove_totals = {
+                'cpu':0,
+                'ram':0,
+                'disk':0
+            }
         sizes = self.admin_driver.list_sizes()
+        if not overcommited:
+            self._calculate_overcommits(sizes, remove_totals)
+
         for size in sizes:
             total_cpu, remaining_cpu = self._cpu_stats(size,
                                                       occ['vcpus'],
-                                                      occ['vcpus_used'])
+                                                      occ['vcpus_used'],
+                                                      remove_totals['cpu'])
         
             total_ram, remaining_ram = self._ram_stats(size,
                                                        occ['memory_mb'],
-                                                       occ['memory_mb_used'])
+                                                       occ['memory_mb_used'],
+                                                       remove_totals['ram'])
             total_disk, remaining_disk = self._disk_stats(size,
                                                          occ['local_gb'],
-                                                         occ['local_gb_used'])
+                                                         occ['local_gb_used'],
+                                                         remove_totals['disk'])
             remaining = min(remaining_cpu,
                             remaining_ram,
                             remaining_disk)
