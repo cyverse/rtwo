@@ -267,9 +267,12 @@ class OSMeta(Meta):
             remaining = min(remaining_cpu,
                             remaining_ram,
                             remaining_disk)
-            total = min(total_cpu,
-                        total_ram,
-                        total_disk)
+            if remaining == remaining_cpu:
+                total = total_cpu
+            elif remaining == remaining_ram:
+                total = total_ram
+            else:
+                total = total_disk
             size.extra['occupancy'] = {'total': total,
                                        'remaining': remaining}
         return sizes
