@@ -220,19 +220,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             "user_id": self.connection.user_id,
             "key": self.key,
             "secret": self.secret,
-            "secure": self.connection.secure, 
-            "host":self.connection.host,
-            "port":self.connection.port,
-            "timeout":self.connection.timeout,
-            "ex_force_base_url":self._ex_force_base_url,
-            "ex_force_auth_url":self._ex_force_auth_url,
-            "ex_force_auth_version":self._ex_force_auth_version,
-            "ex_force_auth_token":self._ex_force_auth_token,
+            "secure": self.connection.secure,
+            "host": self.connection.host,
+            "port": self.connection.port,
+            "timeout": self.connection.timeout,
+            "ex_force_base_url": self._ex_force_base_url,
+            "ex_force_auth_url": self._ex_force_auth_url,
+            "ex_force_auth_version": self._ex_force_auth_version,
+            "ex_force_auth_token": self._ex_force_auth_token,
             "ex_tenant_name": self._ex_tenant_name,
-            "ex_force_service_type":self._ex_force_service_type,
-            "ex_force_service_name":self._ex_force_service_name,
-            "ex_force_service_region":self._ex_force_service_region,
-            }
+            "ex_force_service_type": self._ex_force_service_type,
+            "ex_force_service_name": self._ex_force_service_name,
+            "ex_force_service_region": self._ex_force_service_region,
+        }
         copied_args.update(update_args)
         new_connection = self.__class__(**copied_args)
         return new_connection
@@ -242,8 +242,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Swap base url to make a request against keystone instead of nova
         """
         return self._copy_connection(
-                ex_force_service_type='identity',
-                ex_force_service_name='keystone')
+            ex_force_service_type='identity',
+            ex_force_service_name='keystone')
 
     def _keystone_list_tenants(self):
         keystone_driver = self._make_keystone_connection()
@@ -260,7 +260,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def _create_args_to_params(self, node, **kwargs):
         server_params = super(OpenStack_Esh_NodeDriver, self)\
-                ._create_args_to_params(node, **kwargs)
+            ._create_args_to_params(node, **kwargs)
         if 'ex_availability_zone' in kwargs:
             server_params['availability_zone'] = kwargs['ex_availability_zone']
         return server_params
@@ -294,6 +294,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra['password'] = None
 
         return node
+
     def reboot_node(self, node, reboot_type='SOFT'):
         """
         Options for 'reboot_type': SOFT, HARD
