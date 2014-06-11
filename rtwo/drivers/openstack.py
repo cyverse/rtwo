@@ -81,6 +81,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_delete_security_group_rule": ["Remove rule from a group"],
         "ex_list_security_group_rules": ["List all rules for a group"],
         "ex_get_limits": ["Get Rate and Absolute API limits"],
+        "ex_os_services": ["Manage services (os-services)"]
     }
 
     """
@@ -1054,6 +1055,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         rate = _to_rate(json_limits)
         absolute = _to_absolute(json_limits)
         return {"rate": rate, "absolute": absolute}
+
+    def ex_os_services(self):
+        """
+        Return a list of services with their current state and status.
+
+        See: http://docs.openstack.org/api\
+             /openstack-compute/2/content/ext-os-services.html
+        """
+        uri = "/os-services"
+        return self.connection.request(uri, method="GET").object["services"]
 
     """
     Private methods
