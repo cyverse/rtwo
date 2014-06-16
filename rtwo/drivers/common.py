@@ -6,6 +6,7 @@ import copy
 import glanceclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
+from swiftclient import client as swift_client
 from novaclient import client as nova_client
 from neutronclient.v2_0 import client as neutron_client
 
@@ -40,6 +41,13 @@ class LoggedScriptDeployment(ScriptDeployment):
             logger.warn('%s (%s)STDERR: %s' % (node.id, self.name,
                                                self.stderr))
         return node
+
+
+def _connect_to_swift(*args, **kwargs):
+    """
+    """
+    swift = swift_client.Connection(*args, **kwargs)
+    return swift
 
 
 def _connect_to_neutron(*args, **kwargs):

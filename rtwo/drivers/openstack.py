@@ -16,7 +16,7 @@ import libcloud.compute.ssh
 
 from libcloud.compute.types import Provider, NodeState, DeploymentError,\
     LibcloudError
-from libcloud.compute.base import StorageVolume,\
+from libcloud.compute.base import StorageVolume, VolumeSnapshot,\
     NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
     NodeAuthPassword, NodeDriver
 from libcloud.compute.deployment import MultiStepDeployment, ScriptDeployment
@@ -86,6 +86,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
     Object builders -- Convert the native dict in to a Libcloud object
     """
+    def _to_snapshot(self, api_ss):
+        if 'snapshot' in api_ss:
+            api_ss = api_ss['snapshot']
+
+        extra = {'volume_id': api_ss.get('volumeId',api_ss.get('volume_id')),
+                 'name': api_ss.get('displayName',api_ss.get('display_name')),
+                 'created': api_ss.get('createdAt',api_ss.get('created_at')),
+                 'description': api_ss.get('displayDescription', api_ss.get('display_description')),
+                 'status': api_ss['status']} 
+        snapshot = VolumeSnapshot(id=api_ss['id'], driver=self,
+                                  size=api_ss['size'], extra=extra)
+        return snapshot
+
     def _to_volumes(self, el, glance=False):
         return [self._to_volume(volume, glance=glance)
                 for volume in el['volumes']]
@@ -112,6 +125,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         created_time = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%f')
         extra = {
             'id': api_volume['id'],
+            'object': api_volume,
             'displayName': display_name,
             'displayDescription': display_description,
             'size': api_volume['size'],
@@ -635,10 +649,68 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                              % body)
             return (False, None)
 
+    #Volume Snapshots
+    def ex_get_snapshot(self, snapshot_id):
+        server_resp = self.connection.request(
+                '/os-snapshots/%s' % snapshot_id)
+        return self._to_snapshot(server_resp.object)
+
     #Volumes
-    def create_volume(self, **kwargs):
+    def ex_boot_volume(self, source, source_type, name, size, network,
+            destination_type="volume", delete_on_termination=False,
+            boot_index=0, volume_size=0):
+        """
+        """
+        #Strict Validation required for some values..
+        if source_type not in [None, "volume", "snapshot", "image"]:
+            raise ValueError("Valid values for key 'source_type' are: volume, snapshot, image, and None.")
+        if source_type != "volume" and volume_size == 0:
+            raise ValueError(
+                    "Conflict: Must define an explicit volume_size "
+                    "when the source is not a volume")
+        if destination_type not in [None, "volume", "local"]:
+            raise ValueError("Valid values for key 'destination_type' are: volume, local, and None.")
+
+        body = {'server': {
+            'name': name,
+            'metadata': {
+                'source_id': source.id,
+                'source_type': source_type,
+            },
+            'imageRef': source.id if source_type == "image" else "",
+            'flavorRef': size.id,
+            'block_device_mapping_v2': [{
+                "boot_index": boot_index,
+                "destination_type": destination_type,
+                "delete_on_termination": delete_on_termination,
+                #NOTE: This line will likely change in icehouse. Replace it with:
+                # "shutdown"  : shutdown,
+                "source_type": source_type,
+                "uuid": source.id,
+            }],
+            "min_count": 1,
+            "max_count": 1,
+            "networks": [{"uuid": network.id}]
+            }
+        }
+        if source_type != "volume":
+            body["server"]\
+                    ["block_device_mapping_v2"][0]\
+                    ["volume_size"] = volume_size
+
+        server_resp = self.connection.request('/os-volumes_boot',
+                                              method='POST',
+                                              data=body)
+        return (server_resp.status == 200, server_resp.object)
+
+    def create_volume(self, size, name,
+            description=None, metadata=None,
+            location=None, snapshot=None, image=None):
         """
         Create a new volume
+
+        @keyword size: The size of the new volume
+        @type    size: C{int}
 
         @keyword name: The name of the new volume
         @type    name: C{str}
@@ -646,15 +718,36 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @keyword description: A description for the new volume (Optional)
         @type    description: C{str}
 
-        @keyword size: The size of the new volume
-        @type    size: C{int}
+        @param   metadata: Key/Value metadata to associate with a node
+        @type    metadata: C{dict}
+
+        @keyword location: The location to place the new volume (Optional)
+        @type    location: C{str}
+
+        @keyword snapshot: Create a new volume from existing snapshot (Optional)
+        @type    snapshot: C{VolumeSnapshot}
+
+        @keyword image: Create a new volume from existing image (Optional)
+        @type    image: C{Image}
         """
+        if not metadata:
+            metadata = {'contents': name}
         body = {'volume': {
-            'display_name': kwargs.get('name', ''),
-            'display_description': kwargs.get('description', ''),
-            'size': kwargs.get('size', '1')
+            'size': size,
+            'display_name': name,
+            'display_description': description,
+            'volume_type': None,
+            'imageRef': None,
+            'snapshot_id': None,
+            'metadata': metadata,
+            'availability_zone': location
+            }
         }
-        }
+        if snapshot:
+            body['volume']['snapshot_id'] = snapshot.id
+        if image:
+            body['volume']['imageRef'] = image.id
+
         server_resp = self.connection.request('/os-volumes',
                                               method='POST',
                                               data=body)
@@ -1139,6 +1232,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             raise
 
         return True
+
+    def _image_size(self, image):
+        byte_size = image.extra['api']['OS-EXT-IMG-SIZE:size']
+        in_gb = byte_size/1024**3
+        return in_gb
 
     def _update_node(self, node, **node_updates):
         """

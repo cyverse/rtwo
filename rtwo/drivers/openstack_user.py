@@ -12,7 +12,7 @@ from novaclient.exceptions import NotFound as NovaNotFound
 from threepio import logger
 
 from rtwo.drivers.common import _connect_to_keystone,\
-    _connect_to_nova, find
+    _connect_to_swift, _connect_to_nova, find
 
 
 class UserManager():
@@ -36,12 +36,26 @@ class UserManager():
         return manager
 
     def __init__(self, *args, **kwargs):
-        self.keystone, self.nova = self.new_connection(*args, **kwargs)
+        self.keystone, self.nova, self.swift = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         keystone = _connect_to_keystone(*args, **kwargs)
         nova = _connect_to_nova(*args, **kwargs)
-        return keystone, nova
+        swift_args = self._get_swift_args(*args, **kwargs)
+        swift = _connect_to_swift(*args, **swift_args)
+        return keystone, nova, swift
+
+    def _get_swift_args(self, *args, **kwargs):
+        swift_args = {}
+        swift_args['authurl'] = kwargs.get('auth_url')
+        swift_args['user'] = kwargs.get('username')
+        swift_args['key'] = kwargs.get('password')
+        swift_args['tenant_name'] = kwargs.get('tenant_name')
+        if "v2" in kwargs.get("auth_url"):
+            swift_args['auth_version'] = 2
+        swift_args['os_options'] = {"region_name":kwargs.get("region_name")}
+        return swift_args
+
 
     def build_nova(self, username, password, project_name, *args, **kwargs):
         """

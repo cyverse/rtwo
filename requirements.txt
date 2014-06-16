@@ -7,5 +7,6 @@ git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
 git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
+git+git://github.com/openstack/python-swiftclient.git#egg=python-swiftclient
 git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git#egg=python-irodsclient-0.2
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4
