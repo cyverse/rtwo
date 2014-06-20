@@ -46,17 +46,15 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                         params=params, data=data,
                         method=method, headers=headers)
                 return response
-            except socket.error, conn_err:
-                if 'Connection timed out' in conn_err.message:
-                    logger.error("Request timed out: %s (Attempt:%s)" % action)
+            except (httplib.HTTPException, socket.error,
+                    socket.gaierror, httplib.BadStatusLine), e:
+                logger.error("Request failed with error: %s - %s. Retrying" %
+                        e.__class__.__name__, e.args)
                 if current_attempt >= attempts:
                     #Keep the original StackTrace
                     raise
             except Exception, e:
-                logger.exception(e)
-                if current_attempt >= attempts:
-                    #Keep the original StackTrace
-                    raise
+                raise
             #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
             time.sleep(2**current_attempt)
 
