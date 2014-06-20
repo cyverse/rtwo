@@ -20,7 +20,9 @@ from libcloud.compute.base import StorageVolume, VolumeSnapshot,\
     NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
     NodeAuthPassword, NodeDriver
 from libcloud.compute.deployment import MultiStepDeployment, ScriptDeployment
-from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
+from libcloud.compute.drivers.openstack import \
+        OpenStack_1_1_NodeDriver,\
+        OpenStack_1_1_Connection
 from libcloud.utils.py3 import httplib
 
 from neutronclient.common.exceptions import NeutronClientException
@@ -32,10 +34,37 @@ from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
 
+class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
+    def request(self, action, params=None,
+                data='', headers=None, method='GET', attempts=3):
+        current_attempt = 0
+        while current_attempt < attempts:
+            try:
+                current_attempt += 1
+                response = super(OpenStack_1_1_Connection, self).request(
+                        action=action,
+                        params=params, data=data,
+                        method=method, headers=headers)
+                return response
+            except socket.error, conn_err:
+                if 'Connection timed out' in conn_err.message:
+                    logger.error("Request timed out: %s (Attempt:%s)" % action)
+                if current_attempt >= attempts:
+                    #Keep the original StackTrace
+                    raise
+            except Exception, e:
+                logger.exception(e)
+                if current_attempt >= attempts:
+                    #Keep the original StackTrace
+                    raise
+            #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
+            time.sleep(2**current_attempt)
+
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
     OpenStack node driver for esh.
     """
+    connectionCls = OpenStack_Esh_Connection
 
     features = {
         "_to_volume": ["Convert native object to StorageVolume"],
