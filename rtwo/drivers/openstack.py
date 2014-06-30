@@ -248,6 +248,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra.update({
             'addresses': api_node.get('addresses'),
             'status': api_node.get('status').lower(),
+            'fault': api_node.get('fault',{}),
             'task': api_node.get('OS-EXT-STS:task_state'),
             'power': api_node.get('OS-EXT-STS:power_state'),
             'object': api_node
