@@ -71,6 +71,9 @@ class BaseProvider(object):
     def get_driver(self, *args, **kwargs):
         raise NotImplemented
 
+    def __repr__(self):
+        return '%s (%s)' % (self.__class__, self.identifier)
+
 
 class Provider(BaseProvider):
 
