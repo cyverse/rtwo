@@ -733,8 +733,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return (server_resp.status == 200, server_resp.object)
 
     def create_volume(self, size, name,
-            description=None, metadata=None,
-            location=None, snapshot=None, image=None):
+                      description=None, metadata=None,
+                      location=None, snapshot=None, image=None):
         """
         Create a new volume
 
