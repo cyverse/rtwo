@@ -40,17 +40,17 @@ class NetworkManager(object):
         users_with_networks = [net['name'].replace('-net', '')
                                for net in named_networks]
         user_map = {}
-        networks = self.neutron.list_networks()
-        subnets = self.neutron.list_subnets()
-        routers = self.neutron.list_routers()
-        ports = self.neutron.list_ports()
+        networks = self.list_networks()
+        subnets = self.list_subnets()
+        routers = self.list_routers()
+        ports = self.list_ports()
         for user in users_with_networks:
-            my_nets = [net for net in networks['networks'] if '%s-net' % user in net['name']]
+            my_nets = [net for net in networks if '%s-net' % user in net['name']]
             net_ids = [n['id'] for n in my_nets]
-            my_subnets = [subnet for subnet in subnets['subnets'] if '%s-subnet' % user in subnet['name']]
+            my_subnets = [subnet for subnet in subnets if '%s-subnet' % user in subnet['name']]
             subnet_ids = [s['id'] for s in my_subnets]
             my_ports = []
-            for port in ports['ports']:
+            for port in ports:
                 if 'dhcp' in port['device_owner'] or \
                         'compute:None' in port['device_owner']:
                     #Skip these ports..
@@ -85,6 +85,7 @@ class NetworkManager(object):
         }
         user_neutron = self.new_connection(**user_creds)
         return user_neutron
+
 
     def create_project_network(self, username, password,
                                project_name, get_unique_number=None, **kwargs):
@@ -179,21 +180,28 @@ class NetworkManager(object):
         logger.info('Assigned Floating IP - %s:%s' % (server_id, assigned_ip))
         return assigned_ip
 
-    def create_port(self, server_id, network_id, name=None):
+    def create_port(self, server_id, network_id, subnet_id=None,
+            ip_address=None, tenant_id=None, name=None):
         """
         Create a new (Fixed IP) Port between server id and the user network
         """
         if not name:
             name = 'fixed_ip_%s' % (server_id,)
-        port_obj = self.neutron.create_port(
-                {'port':
-                    {
-                        'network_id':network_id,
-                        'device_id':server_id,
-                        'admin_state_up':True,
-                        'name':name
-                    }
-                })
+        port_data = {'port':
+                {
+                    "tenant_id": tenant_id,
+                    "network_id":network_id,
+                    "device_id":server_id,
+                    "fixed_ips": [{"subnet_id":subnet_id, "ip_address":
+                        ip_address}],
+                    'admin_state_up':True,
+                    'name':name
+                }
+            }
+        if subnet_id and ip_address:
+            #In this case, we should attach the interface after the fact.
+            port_data['port'].pop('device_id')
+        port_obj = self.neutron.create_port(port_data)
         return port_obj['port']
 
 
@@ -265,21 +273,18 @@ class NetworkManager(object):
                                 cidr=net.get('cidr', None),
                                 extra=net,
                                 driver=self)
+    ##GET##
+    def get_network(self, network_id):
+        for net in self.neutron.list_networks()['networks']:
+            if network_id == net['id']:
+                return net
+        return None
 
-    ##LOOKUP##
-    def find_network(self, network_name, contains=False):
-        return [net for net in self.neutron.list_networks()['networks']
-                if network_name == net['name']
-                or (contains and network_name in net['name'])]
-
-    def find_subnet(self, subnet_name, contains=False):
-        return [net for net in self.neutron.list_subnets()['subnets']
-                if subnet_name == net['name']
-                or (contains and subnet_name in net['name'])]
-
-    def find_router(self, router_name):
-        return [net for net in self.neutron.list_routers()['routers']
-                if router_name == net['name']]
+    def get_subnet(self, subnet_id):
+        for subnet in self.neutron.list_subnets()['subnets']:
+            if subnet_id == subnet['id']:
+                return subnet
+        return None
 
     def get_port(self, port_id):
         ports = self.list_ports()
@@ -289,6 +294,45 @@ class NetworkManager(object):
             if port['id'] == port_id:
                 return port
         return None
+    ##Easy Lists##
+    def list_networks(self):
+        return self.neutron.list_networks()['networks']
+
+    def list_subnets(self):
+        return self.neutron.list_subnets()['subnets']
+
+    def list_routers(self):
+        return self.neutron.list_routers()['routers']
+
+    ##LOOKUP##
+    def find_tenant_resources(self, tenant_id, instance_ids=[]):
+        networks = [net for net in self.list_networks()
+                    if net['tenant_id'] == tenant_id]
+        ports = [port for port in self.list_ports()
+                 if port['tenant_id'] == tenant_id
+                 or port['device_id'] in instance_ids]
+        subnets = [subnet for subnet in self.list_subnets()
+                    if subnet['tenant_id'] == tenant_id]
+        routers = [router for router in self.list_routers()
+                    if router['tenant_id'] == tenant_id]
+        return {"ports": ports,
+                "networks": networks,
+                "subnets": subnets,
+                "routers": routers
+               }
+    def find_network(self, network_name, contains=False):
+        return [net for net in self.list_networks()
+                if network_name == net['name']
+                or (contains and network_name in net['name'])]
+
+    def find_subnet(self, subnet_name, contains=False):
+        return [net for net in self.list_subnets()
+                if subnet_name == net['name']
+                or (contains and subnet_name in net['name'])]
+
+    def find_router(self, router_name):
+        return [net for net in self.list_routers()
+                if router_name == net['name']]
 
     def find_ports(self, router_name):
         routers = self.find_router(router_name)

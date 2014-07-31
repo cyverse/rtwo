@@ -1181,6 +1181,29 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         absolute = _to_absolute(json_limits)
         return {"rate": rate, "absolute": absolute}
 
+    def ex_detach_interface(self, instance_id, port_id):
+        """
+        Detaches an existing fixed IP address (port) with ta server (Device)
+        See:
+            http://docs.openstack.org/api/openstack-compute/2/content/ext-os-interface.html
+        """
+        uri = "/servers/%s/os-interface/%s" % (instance_id, port_id)
+        server_resp = self.connection.request(uri, method="DELETE")
+        return server_resp.status == 202
+
+
+    def ex_attach_interface(self, instance_id, port_id):
+        """
+        Attaches an existing fixed IP address (port) with ta server (Device)
+        See:
+            http://docs.openstack.org/api/openstack-compute/2/content/ext-os-interface.html
+        """
+        uri = "/servers/%s/os-interface" % (instance_id,)
+        server_resp = self.connection.request(uri, method="POST",
+                data={"interfaceAttachment": {"port_id":port_id }}           
+                )
+        return server_resp.object['interfaceAttachment']
+
     def ex_os_services(self):
         """
         Return a list of services with their current state and status.
