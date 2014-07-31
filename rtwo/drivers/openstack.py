@@ -48,10 +48,14 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 return response
             except (httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
-                logger.error("Request failed with error: %s - %s. Retrying" %
-                        e.__class__.__name__, e.args)
+                logger.error("Request %s failed with error: %s - %s. Retry #%s/%s"
+                        % (action, e.__class__.__name__, e.args,
+                           current_attempt, attempts))
                 if current_attempt >= attempts:
-                    #Keep the original StackTrace
+                    logger.error("Final attempt failed! Request diagnostics:"
+                            "action=%s, params=%s, data=%s,"
+                            "method=%s, headers=%s"
+                            % (action, params, data, method, headers))
                     raise
             except Exception, e:
                 raise
@@ -248,6 +252,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra.update({
             'addresses': api_node.get('addresses'),
             'status': api_node.get('status').lower(),
+            'fault': api_node.get('fault',{}),
             'task': api_node.get('OS-EXT-STS:task_state'),
             'power': api_node.get('OS-EXT-STS:power_state'),
             'object': api_node

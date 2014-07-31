@@ -387,6 +387,8 @@ class OSDriver(EshDriver, InstanceActionMixin):
 
         Return the MachineClass representation of a libcloud NodeImage
         """
+        #TODO: I don't like this implementation.. -Steve
+        # Currently there is no 'override' if i dont want to use ex-tenant-name
         identifier = self.identity.credentials.get('ex_tenant_name')
         if not identifier:
             logger.debug("Could not find tenant_name, "
