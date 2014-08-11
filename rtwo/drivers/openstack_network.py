@@ -16,7 +16,7 @@ from threepio import logger
 
 from rtwo.drivers.common import _connect_to_neutron,\
     get_default_subnet
-from neutronclient.common.exceptions import NeutronClientException
+from neutronclient.common.exceptions import NeutronClientException, NotFound
 
 class NetworkManager(object):
 
@@ -33,6 +33,34 @@ class NetworkManager(object):
         """
         neutron = _connect_to_neutron(*args, **kwargs)
         return neutron
+
+    def tenant_networks(self, tenant_id=None):
+        if not tenant_id:
+            tenant_id = self.get_tenant_id()
+        tenant_nets = self.list_networks(tenant_id=tenant_id)
+        return tenant_nets
+
+    def get_tenant_id(self):
+        credentials = self.get_credentials()
+        try:
+            tenant_id = credentials.get('auth_tenant_id')
+            return tenant_id
+        except KeyError:
+            logger.warn(
+                "Key 'auth_tenant_id' no longer exists in"
+                "'get_credentials()'")
+            return None
+
+    def get_credentials(self):
+        """
+        Return the user_id and tenant_id of the network manager
+        """
+        auth_info = self.neutron.httpclient.get_auth_info()
+        if not auth_info.get('auth_tenant_id'):
+            self.list_networks()
+            auth_info = self.neutron.httpclient.get_auth_info()
+        auth_info.pop('auth_token')
+        return auth_info
 
     ##Admin-specific methods##
     def project_network_map(self):
@@ -131,9 +159,15 @@ class NetworkManager(object):
         delete_subnet
         delete_network
         """
-        self.remove_router_interface(self.neutron,
-                                     self.default_router,
-                                     '%s-subnet' % project_name)
+        try:
+            self.remove_router_interface(self.neutron,
+                                         self.default_router,
+                                         '%s-subnet' % project_name)
+        except NotFound:
+            #This is OKAY!
+            pass
+        except:
+            raise
         self.delete_subnet(self.neutron, '%s-subnet' % project_name)
         if remove_network:
             self.delete_network(self.neutron, '%s-net' % project_name)
@@ -161,27 +195,30 @@ class NetworkManager(object):
         Find port of new VM
         Associate new floating IP with the port assigned to the new VM
         """
-        #TODO: Look at the network if it already has a floating ip, dont
-        #re-create
-        external_networks = [net for net
-                             in self.lc_list_networks()
-                             if net.extra['router:external']]
-        body = {'floatingip':
-                {'floating_network_id': external_networks[0].id}}
-        new_ip = self.neutron.create_floatingip(body)['floatingip']
+        networks = self.list_networks()
+        external_networks = [net for net in networks 
+                             if net['router:external'] == True]
+        if not external_networks:
+            raise Exception("CONFIGURATION ERROR! No external networks found!"
+                            " Cannot associate floating ip without it!"
+                            " Create a fixed IP/port first!")
 
         instance_ports = self.list_ports(device_id=server_id)
+        if not instance_ports:
+            raise Exception("No ports found with device_id == %s."
+                            " Create a fixed IP/port first!" % server_id)
+        #TODO: Look at the network if it already has a floating ip, dont
+        #re-create
         body = {'floatingip':
-                {'port_id': instance_ports[0]['id']}}
-        updated_ip = self.neutron.update_floatingip(new_ip['id'],
-                                                     body)
-        logger.info('updated_floatingip - %s:%s' % (server_id, updated_ip))
-        assigned_ip = updated_ip['floatingip']
-        logger.info('Assigned Floating IP - %s:%s' % (server_id, assigned_ip))
-        return assigned_ip
+                {'port_id': instance_ports[0]['id']},
+                {'floating_network_id': external_networks[0]['id']}}
+        new_ip = self.neutron.create_floatingip(body)['floatingip']
+
+        logger.info('Assigned Floating IP - %s:%s' % (server_id, new_ip))
+        return new_ip
 
     def create_port(self, server_id, network_id, subnet_id=None,
-            ip_address=None, tenant_id=None, name=None):
+            ip_address=None, tenant_id=None, mac_address=None, name=None):
         """
         Create a new (Fixed IP) Port between server id and the user network
         """
@@ -198,6 +235,8 @@ class NetworkManager(object):
                     'name':name
                 }
             }
+        if mac_address:
+            port_data['port']['mac_address'] = mac_address
         if subnet_id and ip_address:
             #In this case, we should attach the interface after the fact.
             port_data['port'].pop('device_id')
@@ -259,11 +298,11 @@ class NetworkManager(object):
         manager = NetworkManager(*args, **lc_driver_args)
         return manager
 
-    def lc_list_networks(self):
+    def lc_list_networks(self, *args, **kwargs):
         """
         Call neutron list networks and convert to libcloud objects
         """
-        network_list = self.neutron.list_networks()
+        network_list = self.neutron.list_networks(*args, **kwargs)
         return [self._to_lc_network(net) for net in network_list['networks']]
 
     def _to_lc_network(self, net):
@@ -295,8 +334,12 @@ class NetworkManager(object):
                 return port
         return None
     ##Easy Lists##
-    def list_networks(self):
-        return self.neutron.list_networks()['networks']
+    def list_networks(self, *args, **kwargs):
+        """
+        NOTE: kwargs can be: tenant_id=, or any other attr listed in the
+        details of a network.
+        """
+        return self.neutron.list_networks(*args, **kwargs)['networks']
 
     def list_subnets(self):
         return self.neutron.list_subnets()['subnets']
