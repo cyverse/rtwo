@@ -48,8 +48,8 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 return response
             except (httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
-                logger.error("Request %s failed with error: %s - %s. Retry #%s/%s"
-                        % (action, e.__class__.__name__, e.args,
+                logger.error("Request %s %s failed with error: %s - %s. Retry #%s/%s"
+                        % (method, action, e.__class__.__name__, e.args,
                            current_attempt, attempts))
                 if current_attempt >= attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
@@ -57,10 +57,12 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                             "method=%s, headers=%s"
                             % (action, params, data, method, headers))
                     raise
+                sleep_time = 2 ** current_attempt
+                logger.error("Sleep for %s seconds" % sleep_time)
+                time.sleep(sleep_time)
             except Exception, e:
                 raise
             #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
-            time.sleep(2**current_attempt)
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """

@@ -209,9 +209,9 @@ class NetworkManager(object):
                             " Create a fixed IP/port first!" % server_id)
         #TODO: Look at the network if it already has a floating ip, dont
         #re-create
-        body = {'floatingip':{
-                   {'port_id': instance_ports[0]['id']},
-                   {'floating_network_id': external_networks[0]['id']}
+        body = {'floatingip': {
+                   'port_id': instance_ports[0]['id'],
+                   'floating_network_id': external_networks[0]['id']
                }}
         new_ip = self.neutron.create_floatingip(body)['floatingip']
 
