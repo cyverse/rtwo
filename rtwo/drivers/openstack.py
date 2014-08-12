@@ -48,8 +48,8 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 return response
             except (httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
-                logger.error("Request %s failed with error: %s - %s. Retry #%s/%s"
-                        % (action, e.__class__.__name__, e.args,
+                logger.error("Request %s %s failed with error: %s - %s. Retry #%s/%s"
+                        % (method, action, e.__class__.__name__, e.args,
                            current_attempt, attempts))
                 if current_attempt >= attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
@@ -57,10 +57,12 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                             "method=%s, headers=%s"
                             % (action, params, data, method, headers))
                     raise
+                sleep_time = 2 ** current_attempt
+                logger.error("Sleep for %s seconds" % sleep_time)
+                time.sleep(sleep_time)
             except Exception, e:
                 raise
             #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
-            time.sleep(2**current_attempt)
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
@@ -207,6 +209,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             if f_ip.get('instance_id') == node.id:
                 node.public_ips.append(f_ip['floating_ip_address'])
         return
+    def neutron_list_networks(self, *args, **kwargs):
+        """
+        Although there is an 'os-networks' endpoint, valuable information like tenant_id are missing from the return-data, so we must call neutron directly..
+        """
+        network_manager = self.get_network_manager()
+        networks = network_manager.list_networks(*args, **kwargs)
+        return networks
+
+    def neutron_get_tenant_network(self):
+        network_manager = self.get_network_manager()
+        tenant_networks = network_manager.tenant_networks()
+        return tenant_networks[0] if tenant_networks else None
+
+    def neutron_list_ports(self, *args, **kwargs):
+        network_manager = self.get_network_manager()
+        networks = network_manager.list_ports(*args, **kwargs)
+        return networks
 
     def _to_nodes(self, el):
         return [self._to_node(api_node) for api_node in el['servers']]
@@ -570,16 +589,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 ssh_client.close()
                 return node
 
-    def ex_list_networks(self, region=None):
-        """
-        Overrides the 'os-networksv2' API from libcloud in favor of the
-        Openstack Network Manager. We will use this until libcloud completely
-        supports neutron
-        """
-        from atmosphere import settings
-        network_manager = NetworkManager(**settings.OPENSTACK_ARGS)
-        return network_manager.lc_list_networks()
-
     def ex_start_node(self, node):
         """
         Suspend a node.
@@ -593,6 +602,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         resp = self._node_action(node, 'os-stop')
         return resp.status == httplib.ACCEPTED
+
+    def ex_get_tenant_network(self):
+        networks = self.ex_list_networks()
+        tenant_network = [net for net in networks if tenant_id == net.tenant_id]
 
     def ex_suspend_node(self, node):
         """
@@ -1181,6 +1194,37 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         absolute = _to_absolute(json_limits)
         return {"rate": rate, "absolute": absolute}
 
+    def ex_detach_interface(self, instance_id, port_id):
+        """
+        Detaches an existing fixed IP address (port) with ta server (Device)
+        See:
+            http://docs.openstack.org/api/openstack-compute/2/content/ext-os-interface.html
+        """
+        uri = "/servers/%s/os-interface/%s" % (instance_id, port_id)
+        server_resp = self.connection.request(uri, method="DELETE")
+        return server_resp.status == 202
+
+
+    def ex_attach_interface(self, instance_id, network_id=None, port_id=None):
+        """
+        Attaches an existing fixed IP address (port) with ta server (Device)
+        See:
+            http://docs.openstack.org/api/openstack-compute/2/content/ext-os-interface.html
+        """
+        uri = "/servers/%s/os-interface" % (instance_id,)
+        if not network_id and not port_id:
+            raise Exception("Missing required argument: port_id OR network_id")
+        elif network_id and port_id:
+            raise Exception("Too many arguments: port_id OR network_id")
+        elif port_id:
+            attach_data = {"port_id":port_id }
+        elif network_id:
+            attach_data = {"net_id":network_id }
+
+        server_resp = self.connection.request(uri, method="POST",
+                data={"interfaceAttachment": attach_data})
+        return server_resp.object['interfaceAttachment']
+
     def ex_os_services(self):
         """
         Return a list of services with their current state and status.
@@ -1203,11 +1247,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         instead we call neutronclient directly..
         Feel free to replace when a better mechanism comes along..
         """
-
-        #Can we assign a public ip? Node must be active
-        if node.extra['status'] != 'active':
-            raise Exception("Instance %s must be active before associating "
-                            "floating IP" % node.id)
 
         try:
             network_manager = self.get_network_manager()

@@ -603,12 +603,16 @@ class OSDriver(EshDriver, InstanceActionMixin):
         power = instance.extra['power']
         if status in ['active','build','resize']:
             if task in ['deleting', 'suspending']:
-                return False
-            return True
-        if task in ['resuming', 'powering-on',
+                result=False
+            result=True
+        elif task in ['resuming', 'powering-on',
                     'verify-resize', 'resize_reverting', 'resize_confirming']:
-            return True
-        return False
+            result=True
+        else:
+            result=False
+        logger.info("Instance: %s Status: %s-%s Active:%s" % (instance.id,
+            status, task, result))
+        return result
 
 
 class AWSDriver(EshDriver):
