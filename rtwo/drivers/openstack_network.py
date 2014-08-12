@@ -24,7 +24,10 @@ class NetworkManager(object):
     default_router = None
 
     def __init__(self, *args, **kwargs):
-        self.default_router = kwargs.get('router_name')
+        self.default_router = kwargs.pop('router_name')
+        if not default_router:
+            raise Exception("Missing the default router! "
+                            "Please pass 'router_name='")
         self.neutron = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
