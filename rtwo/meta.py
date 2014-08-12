@@ -322,7 +322,7 @@ class OSMeta(Meta):
 #             max_mem,
 #             stats["mem"]/(1.0*max_mem)))
 
-    def occupancy(self, overcommited=True):
+    def new_occupancy(self, overcommited=True):
         """
         Calculate occupancy using an admin account.
 
@@ -340,7 +340,7 @@ class OSMeta(Meta):
             self._add_occupancy(occupancy, node, size, i)
         return occupancy
 
-    def old_occupancy(self, overcommited=False):
+    def occupancy(self, overcommited=False):
         """
         Add Occupancy data to NodeSize.extra
         """
