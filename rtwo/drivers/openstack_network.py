@@ -25,7 +25,7 @@ class NetworkManager(object):
 
     def __init__(self, *args, **kwargs):
         self.default_router = kwargs.pop("router_name", None)
-        self.neutron = self.new_connection(*args, **new_kwargs)
+        self.neutron = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
