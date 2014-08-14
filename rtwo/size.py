@@ -65,7 +65,7 @@ class Size(BaseSize):
             cls.lc_sizes = lc_list_sizes_method()
         return sorted(
             [cls.get_size(size, provider) for size in cls.lc_sizes],
-            key=lambda s: (s.cpu, s._size.ram))
+            key=lambda s: (s.cpu, s.ram))
 
     def reset(self):
         Size.reset()
@@ -91,16 +91,16 @@ class Size(BaseSize):
 
     def json(self):
         return {
-            'id': self._size.name,
+            'id': self.name,
             'provider': self.provider.identifier,
-            'alias': self._size.id,
-            'name': self._size.name,
+            'alias': self.id,
+            'name': self.name,
             'cpu': self.cpu,
-            'ram': self._size.ram,
-            'root': self._size.disk,
+            'ram': self.ram,
+            'root': self.disk,
             'disk': self.ephemeral,
-            'bandwidth': self._size.bandwidth,
-            'price': self._size.price}
+            'bandwidth': self.bandwidth,
+            'price': self.price}
 
 class MockSize(Size):
     def __init__(self, size_id, provider):

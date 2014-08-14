@@ -200,5 +200,5 @@ class OSInstance(Instance):
         return status
 
     def get_public_ip(self):
-        if self._node.public_ips:
-            return self._node.public_ips[0]
+        if self.ip:
+            return self.ip
