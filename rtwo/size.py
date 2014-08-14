@@ -32,6 +32,7 @@ class Size(BaseSize):
             self.extra = {}  # Placeholder Dict
         self.cpu = self.extra.get('cpu',0)
         self.ephemeral = self.extra.get('ephemeral',0)
+        self.bandwidth = 0
 
     @classmethod
     def create_size(cls, provider, lc_size):
