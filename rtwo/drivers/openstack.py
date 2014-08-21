@@ -325,10 +325,45 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return None
 
     def _create_args_to_params(self, node, **kwargs):
+        """
+        NOTE: This is temporary. Latest version of libcloud has
+        ex_availability_zone support
+        """
         server_params = super(OpenStack_Esh_NodeDriver, self)\
             ._create_args_to_params(node, **kwargs)
         if 'ex_availability_zone' in kwargs:
             server_params['availability_zone'] = kwargs['ex_availability_zone']
+        return server_params
+
+    def _boot_volume_args_to_params(self, node, **kwargs):
+        server_params = super(OpenStack_Esh_NodeDriver, self)\
+            ._create_args_to_params(node, **kwargs)
+        #Most of the work is taken care of at this stage...
+        #But booting a volume requires some additional work.
+        block_device_mapping = {
+            "boot_index": kwargs.get("boot_index",0),
+            "destination_type": kwargs.get("destination_type"),
+            "delete_on_termination": kwargs.get("shutdown",False),
+            "volume_size": kwargs.get("volume_size"),
+            #NOTE: This line will likely change in icehouse. Replace it with:
+            # "shutdown"  : kwargs.get("shutdown", False),
+        }
+        if 'snapshot' in kwargs and not node:
+            block_device_mapping["source_type"] = "snapshot"
+            block_device_mapping["uuid"] = kwargs['snapshot'].id
+        elif 'volume' in kwargs and not node:
+            block_device_mapping["source_type"] = "volume"
+            block_device_mapping["uuid"] = kwargs['volume'].id
+        elif 'image' in kwargs and not node:
+            block_device_mapping["source_type"] = "image"
+            block_device_mapping["uuid"] = kwargs['image'].id
+        else:
+            raise ValueError("To boot a volume, you must select a source."
+                    " Available Sources: [image, volume, snapshot]")
+            
+
+        #NOTE: Wrapped in a list
+        server_params["block_device_mapping_v2"] = [block_device_mapping]
         return server_params
 
     def create_node(self, **kwargs):
@@ -703,51 +738,27 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return self._to_snapshot(server_resp.object)
 
     #Volumes
-    def ex_boot_volume(self, source, source_type, name, size, network,
-            destination_type="volume", delete_on_termination=False,
-            boot_index=0, volume_size=0):
+    def ex_boot_volume(self, **kwargs):
         """
         """
         #Strict Validation required for some values..
-        if source_type not in [None, "volume", "snapshot", "image"]:
-            raise ValueError("Valid values for key 'source_type' are: volume, snapshot, image, and None.")
-        if source_type != "volume" and volume_size == 0:
+        #1. if booting by something that is NOT a volume (Snapshot/Image)
+        #   the size of the new volume must be created.
+        logger.debug("driver.ex_boot_volume kwargs: %s" % kwargs)
+
+        if not kwargs.get('volume') and not kwargs.get('volume_size'):
             raise ValueError(
                     "Conflict: Must define an explicit volume_size "
                     "when the source is not a volume")
-        if destination_type not in [None, "volume", "local"]:
-            raise ValueError("Valid values for key 'destination_type' are: volume, local, and None.")
 
-        body = {'server': {
-            'name': name,
-            'metadata': {
-                'source_id': source.id,
-                'source_type': source_type,
-            },
-            'imageRef': source.id if source_type == "image" else "",
-            'flavorRef': size.id,
-            'block_device_mapping_v2': [{
-                "boot_index": boot_index,
-                "destination_type": destination_type,
-                "delete_on_termination": delete_on_termination,
-                #NOTE: This line will likely change in icehouse. Replace it with:
-                # "shutdown"  : shutdown,
-                "source_type": source_type,
-                "uuid": source.id,
-            }],
-            "min_count": 1,
-            "max_count": 1,
-            "networks": [{"uuid": network.id}]
-            }
-        }
-        if source_type != "volume":
-            body["server"]\
-                    ["block_device_mapping_v2"][0]\
-                    ["volume_size"] = volume_size
+        #Until we have a reason to support the 'local' and 'None' destination..
+        if not kwargs.has_key("destination_type"):
+            kwargs['destination_type'] = 'volume'
 
+        server_params = self._boot_volume_args_to_params(None, **kwargs)
         server_resp = self.connection.request('/os-volumes_boot',
                                               method='POST',
-                                              data=body)
+                                              data={'server': server_params})
         return (server_resp.status == 200, server_resp.object)
 
     def create_volume(self, size, name,

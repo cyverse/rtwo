@@ -71,6 +71,10 @@ class BaseDriver():
         raise NotImplementedError
 
     @abstractmethod
+    def boot_volume(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
     def create_instance(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -295,6 +299,11 @@ class EshDriver(LibcloudDriver, MetaMixin):
 
     def destroy_instance(self, *args, **kwargs):
         return super(EshDriver, self).destroy_instance(*args, **kwargs)
+
+    def boot_volume(self, *args, **kwargs):
+        return self.provider.instanceCls(
+                super(EshDriver, self).boot_volume(*args, **kwargs),
+                self.provider)
 
     def list_volumes(self, *args, **kwargs):
         return self.provider.volumeCls.get_volumes(
@@ -567,6 +576,9 @@ class OSDriver(EshDriver, InstanceActionMixin):
 
     def reboot_instance(self, *args, **kwargs):
         return self._connection.reboot_node(*args, **kwargs)
+
+    def boot_volume(self, *args, **kwargs):
+        return self._connection.ex_boot_volume(*args, **kwargs)
 
     def confirm_resize_instance(self, *args, **kwargs):
         return self._connection.ex_confirm_resize(*args, **kwargs)
