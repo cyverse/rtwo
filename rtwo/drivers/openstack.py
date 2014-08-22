@@ -29,7 +29,7 @@ from neutronclient.common.exceptions import NeutronClientException
 
 from rfive.fabricSSH import FabricSSHClient
 
-from rtwo.exceptions import NonZeroDeploymentException
+from rtwo.exceptions import NonZeroDeploymentException, ConnectionFailure
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
@@ -56,7 +56,11 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                             "action=%s, params=%s, data=%s,"
                             "method=%s, headers=%s"
                             % (action, params, data, method, headers))
-                    raise
+                    #This 3-arg raise will re-raise the exception.
+                    raise ConnectionFailure,\
+                          "Final connection attempt exhausted: %s" % e,\
+                          sys.exc_info()[2]
+
                 sleep_time = 2 ** current_attempt
                 logger.error("Sleep for %s seconds" % sleep_time)
                 time.sleep(sleep_time)
