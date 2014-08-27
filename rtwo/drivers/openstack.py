@@ -145,44 +145,40 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return [self._to_volume(volume, glance=glance)
                 for volume in el['volumes']]
 
-    def _to_volume(self, api_volume, glance=False):
-        if glance:
-            created_at = api_volume['created_at']
-            display_name = api_volume['display_name']
-            display_description = api_volume['display_description']
-            availability_zone = api_volume['availability_zone']
-            snapshot_id = api_volume['snapshot_id']
-            attachmentSet = api_volume['attachments']
-            for attachment in attachmentSet:
-                attachment['serverId'] = attachment.pop('server_id')
-                attachment['volumeId'] = attachment.pop('volume_id')
-        else:
-            created_at = api_volume['createdAt']
-            display_name = api_volume['displayName']
-            display_description = api_volume['displayDescription']
-            availability_zone = api_volume['availabilityZone']
-            snapshot_id = api_volume['snapshotId']
-            attachmentSet = api_volume['attachments']
+    def _glance_volume_args(self, api_volume):
+        api_volume['createdAt'] = api_volume.pop('created_at')
+        api_volume['displayName']  = api_volume.pop('display_name')
+        api_volume['displayDescription'] = api_volume.pop('display_description')
+        api_volume['availabilityZone'] = api_volume.pop('availability_zone')
+        api_volume['snapshotId'] = api_volume.pop('snapshot_id')
+        attachmentSet = api_volume['attachments']
+        for attachment in attachmentSet:
+            attachment['serverId'] = attachment.pop('server_id')
+            attachment['volumeId'] = attachment.pop('volume_id')
+        api_volume['attachments'] = attachmentSet
+        return api_volume
 
-        created_time = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%f')
-        extra = {
+    def _to_volume(self, api_volume, glance=False):
+        #Unwrap the object, if it wasn't unwrapped already.
+        if 'volume' in api_volume:
+            api_volume = api_volume['volume']
+        if glance:
+            api_volume = self._glance_volume_args(api_volume)
+        volume = super(OpenStack_Esh_NodeDriver, self)._to_volume(api_volume)
+
+        created_time = datetime.strptime(api_volume['createdAt'], '%Y-%m-%dT%H:%M:%S.%f')
+        volume.extra.update({
             'id': api_volume['id'],
             'object': api_volume,
-            'displayName': display_name,
-            'displayDescription': display_description,
+            'displayName': api_volume['displayName'],
             'size': api_volume['size'],
             'status': api_volume['status'],
             'metadata': api_volume['metadata'],
-            'availabilityZone': availability_zone,
-            'snapshotId': snapshot_id,
-            'attachmentSet': attachmentSet,
+            'availabilityZone': api_volume['availabilityZone'],
+            'snapshotId': api_volume['snapshotId'],
             'createTime': created_time,
-        }
-        return StorageVolume(id=api_volume['id'],
-                             name=display_name,
-                             size=api_volume['size'],
-                             driver=self,
-                             extra=extra)
+        })
+        return volume
 
     def _to_size(self, api_size):
         """
@@ -248,8 +244,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             Set up ips in the api_node so _to_node may call its super.
             """
             try:
-                node.public_ips = []
-                node.private_ips = []
                 public_ips, private_ips = [], []
                 for (label, ip_addrs) in api_node['addresses'].items():
                     for ip in ip_addrs:
@@ -270,7 +264,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     node.public_ips = [api_node['metadata']['public-ip']]
             except (IndexError, KeyError) as no_ip:
                 logger.warn("No IP for node:%s" % api_node['id'])
-
         node = super(OpenStack_Esh_NodeDriver, self)._to_node(api_node)
         if floating_ips:
             self.neutron_set_ips(node, floating_ips)
@@ -397,10 +390,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         server_object['adminPass'] = create_response.get('adminPass', None)
 
         node = self._to_node(server_object)
-
-        #NOTE: This line is needed to authenticate via SSH_Keypair instead!
-        #TODO: Refactor this and make use of adminPass or Password..
-        node.extra['password'] = None
 
         return node
 
@@ -798,6 +787,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         if not metadata:
             metadata = {'contents': name}
+        else:
+            metadata['contents'] = name
+
         body = {'volume': {
             'size': size,
             'display_name': name,
@@ -817,12 +809,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         server_resp = self.connection.request('/os-volumes',
                                               method='POST',
                                               data=body)
-        try:
-            volume_obj = self._to_volume(server_resp.object['volume'])
-            return (server_resp.status == 200, volume_obj)
-        except Exception, e:
-            logger.exception("Exception occured creating volume")
-            return (False, None)
+        return server_resp.success()
 
     def list_volumes(self):
         return self._to_volumes(self.connection.request("/os-volumes").object)
@@ -847,45 +834,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except Exception, e:
             logger.exception("Exception occured updating volume")
             return (False, None)
-
-    #Volume Attachment
-    def attach_volume(self, node, volume, device=None):
-        """
-        Attaches volume to node at device location
-        """
-        server_id = node.id
-        volume_id = volume.id
-        server_resp = self.connection.request(
-            '/servers/%s/os-volume_attachments' % server_id,
-            method='POST',
-            data={'volumeAttachment':
-                 {'volumeId': volume_id,
-                  'device': device
-                  }
-                  })
-        return server_resp
-
-    def detach_volume(self, volume):
-        """
-        Detaches volume from a node
-        """
-        server_id = volume.attachment_set[0].get('serverId')
-        volume_id = volume.id
-        server_resp = self.connection.request(
-            '/servers/%s/os-volume_attachments/%s' %
-            (server_id, volume_id),
-            method='DELETE')
-        return server_resp.status == 202
-
-    def destroy_volume(self, volume):
-        """
-        Destroys a single volume
-        """
-        volume_id = volume.id
-        server_resp = self.connection.request(
-            '/os-volumes/%s' % (volume_id,),
-            method='DELETE')
-        return server_resp.status == 202
 
     def ex_list_all_instances(self):
         """
@@ -972,17 +920,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_hypervisor_statistics(self):
         return self.connection.request(
             "/os-hypervisors/statistics").object['hypervisor_statistics']
-
-    #Floating IP Pool
-    def ex_list_floating_ip_pools(self, **kwargs):
-        """
-        List all floating IP pools
-        """
-        def _to_ip_pools(ip_pool_list):
-            return [ip_pool_obj for ip_pool_obj
-                    in ip_pool_list['floating_ip_pools']]
-        return _to_ip_pools(self.connection.request(
-            "/os-floating-ip-pools").object)
 
     #Floating IPs
     def ex_list_floating_ips(self, region=None, **kwargs):
@@ -1089,101 +1026,26 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             raise
 
     #Security Groups
-    def ex_create_security_group(self, name,
-                                 description='Created by Atmosphere--Libcloud',
-                                 **kwargs):
-        try:
-            data = {
-                'security_group': {
-                    'name': name,
-                    'description': description
-                }
-            }
-            server_resp = self.connection.request(
-                '/os-security-groups',
-                method='POST',
-                data=data)
-            return server_resp.object
-        except Exception, e:
-            raise
-
-    def ex_delete_security_group(self, sec_group_id, **kwargs):
-        try:
-            server_resp = self.connection.request(
-                '/os-security-groups/%s' % sec_group_id,
-                method='DELETE')
-            return server_resp.object
-        except Exception, e:
-            raise
-
-    def ex_list_security_groups(self, **kwargs):
-        try:
-            server_resp = self.connection.request(
-                '/os-security-groups',
-                method='GET')
-            #PARSE _to_sec_groups & to_sec_group
-            return server_resp.object
-        except Exception, e:
-            raise
-
     def ex_add_security_group(self, server, sec_group, **kwargs):
         try:
             server_resp = self.connection.request(
                 '/servers/%s/action' % server.id,
                 method='POST',
-                data={'addSecurityGroup': {'address': address}})
+                data={'addSecurityGroup': {'name': sec_group.name}})
             return server_resp.object
         except Exception, e:
             raise
 
-    def ex_remove_security_group(self, server, sec_group, **kwargs):
+    def ex_remove_security_group(self, server, sec_group):
         try:
             server_resp = self.connection.request(
                 '/servers/%s/action' % server.id,
                 method='POST',
-                data={'removeSecurityGroup': {'address': address}})
+                data={'removeSecurityGroup': {'name': sec_group.name}})
             return server_resp.object
         except Exception, e:
             raise
 
-    #Security Group Rules
-    def ex_create_security_group_rule(self, protocol, from_port,
-                                      to_port, cidr, group_id,
-                                      parent_group_id, **kwargs):
-        try:
-            server_resp = self.connection.request(
-                '/os-security-group-rules',
-                method='POST',
-                data={"security_group_rule": {
-                    "ip_protocol": protocol,
-                    "from_port": from_port,
-                    "to_port": to_port,
-                    "cidr": cidr,
-                    "group_id": group_id,
-                    "parent_group_id": parent_group_id}
-                })
-            return server_resp.object
-        except Exception, e:
-            raise
-
-    def ex_delete_security_group_rule(self, sec_group_rule_id, **kwargs):
-        try:
-            server_resp = self.connection.request(
-                '/os-security-group-rules/%s' % sec_group_rule_id,
-                method='DELETE')
-            return server_resp.object
-        except Exception, e:
-            raise
-
-    def ex_list_security_group_rules(self, **kwargs):
-        try:
-            server_resp = self.connection.request(
-                '/os-security-group-rules',
-                method='GET')
-            #PARSE _to_sec_group_rule & to_sec_group_rule
-            return server_resp.object
-        except Exception, e:
-            raise
 
     #API Limits
     def ex_get_limits(self):
@@ -1340,13 +1202,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         in_gb = byte_size/1024**3
         return in_gb
 
-    def _update_node(self, node, **node_updates):
-        """
-        OVERRIDES original implementation!
-        This update will NOT replace all metadata on the server/node
-        """
-        return self.ex_set_metadata(node, node_updates, replace_metadata=False)
-
     def ex_delete_ports(self, node, *args, **kwargs):
         """
         Delete Ports related to node. (Neutron)
@@ -1360,21 +1215,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             network_manager.delete_port(p)
 
     # Metadata
-    def ex_set_metadata(self, node, metadata, replace_metadata=True):
+    def ex_write_metadata(self, node, metadata, replace_metadata=True):
         """
-        Sets the Node's metadata.
-
-        @param      image: Node
-        @type       image: L{Node}
-
-        @param      metadata: Key/Value metadata to associate with a node
-        @type       metadata: C{dict}
-
-        @param      replace_metadata: Replace all metadata on node with
-        new metdata
-        @type       replace_metadata: C{bool}
-
-        @rtype: C{dict}
+        NOTE: Similar to ex_set_metadata, but allows for the option
+        to KEEP existing metadata by setting 'replace_metadata=False'
         """
         #NOTE: PUT will REPLACE metadata each time it is added
         #      while POST will keep metadata that does not match
@@ -1391,6 +1235,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             '/servers/%s/metadata' % (node.id,), method=method,
             data={'metadata': metadata}
         ).object['metadata']
+
 
     def ex_get_metadata(self, node, key=None):
         """
