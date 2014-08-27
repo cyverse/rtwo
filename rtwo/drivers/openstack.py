@@ -24,6 +24,10 @@ from libcloud.compute.drivers.openstack import \
         OpenStack_1_1_NodeDriver,\
         OpenStack_1_1_Connection
 from libcloud.utils.py3 import httplib
+try:
+    from lxml import etree as ET
+except ImportError:
+    from xml.etree import ElementTree as ET
 
 from neutronclient.common.exceptions import NeutronClientException
 
