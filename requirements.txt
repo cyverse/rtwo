@@ -8,5 +8,5 @@ git+git://github.com/openstack/python-keystoneclient.git@0.10.0#egg=python-keyst
 git+git://github.com/openstack/python-neutronclient.git@2.3.6#egg=python-neutronclient
 git+git://github.com/openstack/python-novaclient.git@2.18.1#egg=python-novaclient
 git+git://github.com/openstack/python-swiftclient.git@2.2.0#egg=python-swiftclient
-git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git#egg=python-irodsclient-0.2
+git+git://github.com/iPlantCollaborativeOpenSource/python-irodsclient.git#egg=python-irodsclient-0.3
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive-0.1.4
