@@ -758,7 +758,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                               data={'server': server_params})
         return (server_resp.status == 200, server_resp.object)
 
-    def create_volume(self, size, name,
+    def create_volume_obj(self, size, name,
                       description=None, metadata=None,
                       location=None, snapshot=None, image=None):
         """
@@ -809,7 +809,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         server_resp = self.connection.request('/os-volumes',
                                               method='POST',
                                               data=body)
-        return server_resp.success()
+        volume_obj =  self._to_volume(server_resp.object['volume'])
+        return (server_resp.success(), volume_obj)
 
     def list_volumes(self):
         return self._to_volumes(self.connection.request("/os-volumes").object)

@@ -23,7 +23,7 @@ class Volume(BaseVolume):
         self._volume = lc_volume
         self.id = lc_volume.id
         self.alias = lc_volume.id
-        self.attachment_set = lc_volume.extra['attachmentSet']
+        self.attachment_set = lc_volume.extra['attachments']
         self.extra = lc_volume.extra
         self.name = lc_volume.name
         self.provider = self.provider
