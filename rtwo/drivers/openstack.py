@@ -758,7 +758,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                               data={'server': server_params})
         return (server_resp.status == 200, server_resp.object)
 
-    def create_volume_obj(self, size, name,
+    def create_volume(self, size, name,
                       description=None, metadata=None,
                       location=None, snapshot=None, image=None):
         """
