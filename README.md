@@ -5,16 +5,22 @@ A unified interface into multiple cloud providers.
 
 Built on top of Apache libcloud with support for modern OpenStack. Also supports legacy Eucalyptus 2.x and AWS.
 
-# Install
+# Install #
+
+pip install rtwo
+
+
+## Or from source ##
+
 ```bash
 pip install -e git://github.com/iPlantCollaborativeOpenSource/rtwo#egg=rtwo
 ```
 
-# Use
+# Use #
 ```python
 In [1]: import rtwo
 
-In [2]: from rtwo.provider import OSValhallaProvider
+In [2]: from rtwo.provider import OSProvider
 
 In [3]: from rtwo.identity import OSIdentity
 
@@ -22,9 +28,9 @@ In [4]: from rtwo.driver import OSDriver
 
 In [5]: from rtwo.accounts.openstack import AccountDriver
 
-In [6]: osvp = OSValhallaProvider()     
+In [6]: osp = OSProvider()
 
-In [7]: ad = AccountDriver()                                                                                                                             
+In [7]: ad = AccountDriver()
 
 In [8]: ad.create_account("awesomeo")
 Out[8]: 
@@ -32,9 +38,9 @@ Out[8]:
 3d3ca254e7054fdcaa54f473e4d5b59f'}>,
  'yourpassword',
  <Tenant {u'enabled': True, u'description': None, u'name': u'awesomeo', u'id': u'97dfaaebb0d943baa0cfa7cbd3bf24d5'}>)
-In [9]: osi = OSIdentity(osvp, key=rtwo.settings.OPENSTACK_ADMIN_KEY, secret=rtwo.settings.OPENSTACK_ADMIN_SECRET, user="awesomeo", auth_url="http://openstack-server.org:port/v2.0", password=ad.hashpass("awesomeo"), region_name="ValhallaRegion", ex_tenant_name="awesomeo", username="awesomeo")
+In [9]: osi = OSIdentity(osp, key=OPENSTACK_ADMIN_KEY, secret=OPENSTACK_ADMIN_SECRET, user="awesomeo", auth_url="http://openstack-server.org:port/v2.0", password=ad.hashpass("awesomeo"), region_name="ValhallaRegion", ex_tenant_name="awesomeo", username="awesomeo")
 
-In [19]: osdriver = OSDriver(osvp, osi)
+In [19]: osdriver = OSDriver(osp, osi)
 
 In [11]: sizes = osdriver.list_sizes()
 
@@ -47,5 +53,5 @@ Out[14]: [<class 'rtwo.instance.OSInstance'> {'name': 'Lame.', 'ip': None, 'mach
 
 # License
 
-Apache Software License
+See LICENSE file.
 
