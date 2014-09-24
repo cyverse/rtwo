@@ -1,16 +1,15 @@
 """
-rtwo version.
+Current logger version.
 """
+
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
-VERSION = (0, 2, 0, 'dev', 0)
+VERSION = (0, 1, 0, 'dev', 0)
 
-git_match = "(?P<opt_editable_flag>-e )?"\
-            "(?P<git_flag>git\+[a-z]+://)\S*/(?P<repo_name>.*)\.git"\
-            "(?P<opt_egg_flag>#egg=)?(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])?"\
+git_match = "(?P<git_flag>git://)\S*#egg="\
+            "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
             "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
-
             # Version is optional
 egg_match = "(?P<egg>\S.*[a-zA-Z])"\
             "(?P<opt_version_flag>[-=]+)?"\
@@ -19,9 +18,9 @@ egg_match = "(?P<egg>\S.*[a-zA-Z])"\
 def read_requirements(requirements_file):
     """
     Requirements files use two specific formats:
-    packagename[==1.3.1]
+    packagename==1.3.1
     and
-    [-e ]git+[http/https/git]://github.com/abc/xyz.git[#egg=packagename[-1.3.1]]
+    git+git://github.com/abc/xyz.git#egg=packagename-1.3.1
 
     This function converts git to the bottom format
     and
@@ -34,31 +33,30 @@ def read_requirements(requirements_file):
     git_regex = re.compile(git_match)
     with open(requirements_file, 'r') as f:
         for line in f.read().split('\n'):
-            #Skip empty spaces
+            # Skip empty spaces
             if not line:
                 continue
-            #Read the line for version info
+            # Ignore comments.
+            if line.lstrip().startswith("#"):
+                continue
+            # Read the line for version info
             r = git_regex.search(line)
             if not r:
                 r = egg_regex.search(line)
             if not r:
-                print 'Failed to identify requirement:%s' % line
                 continue
             group = r.groupdict()
             if not group:
                 continue
+            #Dependencies will match git_flag
             if group.get('git_flag'):
                 dependencies.append(line)
-            #Add a version-specific requirement
+            #Requirements should be added for each line
             if group.get('opt_version') and group.get('egg'):
                 install_requires.append("%s==%s%s" % (group['egg'], group['opt_version'],
                         '-dev' if group.get('dev_flag') else ''))
-            #Add a generic egg requirement
             elif group.get('egg'):
                 install_requires.append("%s" % (group['egg']))
-            #Infer generic egg requirement from dependency missing #egg=
-            elif group.get('repo_name'):
-                install_requires.append("%s" % (group['repo_name']))
     return (dependencies, install_requires)
 
 
@@ -71,6 +69,7 @@ def write_requirements(requirements_file, new_file):
         [write_to.write("%s\n" % line) for line in install_requires]
     return
         
+
 def git_sha():
     loc = abspath(dirname(__file__))
     try:
@@ -83,6 +82,7 @@ def git_sha():
         return p.communicate()[0]
     except OSError:
         return None
+
 
 def get_version(form='short'):
     """
