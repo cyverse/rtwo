@@ -2,9 +2,9 @@
 Atmosphere service meta.
 
 """
-import sys
 from abc import ABCMeta
 from math import floor
+import sys
 import urlparse
 
 from threepio import logger
@@ -321,6 +321,7 @@ class OSMeta(Meta):
 #             stats["mem"],
 #             max_mem,
 #             stats["mem"]/(1.0*max_mem)))
+
 
     def new_occupancy(self, overcommited=True):
         """
