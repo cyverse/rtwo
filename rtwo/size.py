@@ -5,6 +5,7 @@ Atmosphere service size.
 from abc import ABCMeta
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
+from threepio import logger
 
 
 class BaseSize(object):
@@ -62,8 +63,12 @@ class Size(BaseSize):
 
     @classmethod
     def get_sizes(cls, provider, lc_list_sizes_method):
-        if not cls.sizes or not cls.lc_sizes:
+        identifier = provider.identifier
+        cached_sizes = cls.sizes.get(identifier)
+        if not cached_sizes or not cls.lc_sizes:
             cls.lc_sizes = lc_list_sizes_method()
+            logger.debug("Caching %s sizes for identifier:%s" %
+                         (len(cls.lc_sizes), identifier))
         return sorted(
             [cls.get_size(size, provider) for size in cls.lc_sizes],
             key=lambda s: (s.cpu, s.ram))
