@@ -36,7 +36,37 @@ from rfive.fabricSSH import FabricSSHClient
 from rtwo.exceptions import NonZeroDeploymentException, ConnectionFailure
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
+import functools
 
+def swap_service_catalog(service_type=None, name=None):
+    """
+    Use this temporary decorator to take advantage of the full service catalog
+    offered by OpenStack.
+    TODO:Remove this when JMatts decorator is merged in!
+    """
+    def decorator(method):
+        def service_catalog_switch(*args, **kwargs):
+            """
+            Switch service_catalog endpoints, then switch back!
+            """
+            driver = args[0]
+            lc_conn = driver.connection
+            if not lc_conn.service_catalog:
+                lc_conn.get_service_catalog() # Make a request.
+            if lc_conn._ex_force_base_url:
+                old_endpoint = lc_conn._ex_force_base_url
+            else:
+                old_endpoint = lc_conn.get_endpoint()
+            try:
+                new_service = lc_conn.service_catalog.get_endpoint(
+                    service_type=service_type, name=name,
+                    region=lc_conn.service_region)
+                lc_conn._ex_force_base_url = new_service['publicURL']
+                return method(*args, **kwargs)
+            finally:
+                lc_conn._ex_force_base_url = old_endpoint
+        return service_catalog_switch
+    return decorator
 
 class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
     def request(self, action, params=None,
@@ -52,14 +82,14 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 return response
             except (httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
-                logger.error("Request %s %s failed with error: %s - %s. Retry #%s/%s"
-                        % (method, action, e.__class__.__name__, e.args,
+                logger.error("Request %s %s%s%s failed with error: %s - %s. Retry #%s/%s"
+                        % (method, self.host, self.port, action, e.__class__.__name__, e.args,
                            current_attempt, attempts))
                 if current_attempt >= attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
-                            "action=%s, params=%s, data=%s,"
+                            "base_url=%s%s action=%s, params=%s, data=%s,"
                             "method=%s, headers=%s"
-                            % (action, params, data, method, headers))
+                            % (self.host, self.port, action, params, data, method, headers))
                     #This 3-arg raise will re-raise the exception.
                     raise ConnectionFailure,\
                           "Final connection attempt exhausted: %s" % e,\
@@ -141,11 +171,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                   size=api_ss['size'], extra=extra)
         return snapshot
 
-    def _to_volumes(self, el, glance=False):
-        return [self._to_volume(volume, glance=glance)
+    def _to_volumes(self, el, cinder=False):
+        return [self._to_volume(volume, cinder=cinder)
                 for volume in el['volumes']]
 
-    def _glance_volume_args(self, api_volume):
+    def _cinder_volume_args(self, api_volume):
         api_volume['createdAt'] = api_volume.pop('created_at')
         api_volume['displayName']  = api_volume.pop('display_name')
         api_volume['displayDescription'] = api_volume.pop('display_description')
@@ -158,12 +188,12 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         api_volume['attachments'] = attachmentSet
         return api_volume
 
-    def _to_volume(self, api_volume, glance=False):
+    def _to_volume(self, api_volume, cinder=False):
         #Unwrap the object, if it wasn't unwrapped already.
         if 'volume' in api_volume:
             api_volume = api_volume['volume']
-        if glance:
-            api_volume = self._glance_volume_args(api_volume)
+        if cinder:
+            api_volume = self._cinder_volume_args(api_volume)
         volume = super(OpenStack_Esh_NodeDriver, self)._to_volume(api_volume)
 
         created_time = datetime.strptime(api_volume['createdAt'], '%Y-%m-%dT%H:%M:%S.%f')
@@ -304,17 +334,17 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         new_connection = self.__class__(**copied_args)
         return new_connection
 
-    def _make_keystone_connection(self):
-        """
-        Swap base url to make a request against keystone instead of nova
-        """
-        return self._copy_connection(
-            ex_force_service_type='identity',
-            ex_force_service_name='keystone')
+    #def _make_keystone_connection(self):
+    #    """
+    #    Swap base url to make a request against keystone instead of nova
+    #    """
+    #    return self._copy_connection(
+    #        ex_force_service_type='identity',
+    #        ex_force_service_name='keystone')
 
+    @swap_service_catalog(service_type="identity", name="keystone")
     def _keystone_list_tenants(self):
-        keystone_driver = self._make_keystone_connection()
-        tenant_resp = keystone_driver.connection.request('/tenants').object
+        tenant_resp = self.connection.request('/tenants').object
         all_tenants = tenant_resp['tenants']
         return all_tenants
 
@@ -815,27 +845,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def list_volumes(self):
         return self._to_volumes(self.connection.request("/os-volumes").object)
 
-    def update_volume(self, **kwargs):
-        """
-        """
-        data_dict = {'volume': {}}
-        #Add information to be updated
-        if kwargs.get('display_name', None):
-            data_dict['volume']['display_name'] = kwargs['display_name']
-        if kwargs.get('display_description', None):
-            data_dict['volume']['display_description'] =\
-                kwargs['display_description']
-        if kwargs.get('metadata', None):
-            data_dict['volume']['metadata'] = kwargs['metadata']
-        server_resp = self.connection.request('/os-volumes/%s' % kwargs['id'],
-                                              method='POST',
-                                              data=data_dict)
-        try:
-            return (server_resp.status == 200, server_resp.object['volume'])
-        except Exception, e:
-            logger.exception("Exception occured updating volume")
-            return (False, None)
-
     def ex_list_all_instances(self):
         """
         List all instances from all tenants of a user
@@ -845,29 +854,43 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET')
         return self._to_nodes(server_resp.object)
 
+    @swap_service_catalog(service_type="volume", name="cinder")
     def ex_list_all_volumes(self):
-        """
-        List all volumes from all tenants of a user
-        """
         lc_conn = self.connection
-        if not lc_conn.service_catalog:
-            lc_conn.get_service_catalog()
-        #Change base_url, make request, update base_url
-        if lc_conn._ex_force_base_url:
-            old_endpoint = lc_conn._ex_force_base_url
-        else:
-            old_endpoint = lc_conn.get_endpoint()
+        server_resp = lc_conn.request(
+            '/volumes/detail?all_tenants=1',
+            method='GET')
+        return self._to_volumes(server_resp.object, cinder=True)
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_update_volume_metadata(self, volume, metadata):
+        """
+        """
+        data_dict = {'metadata': metadata}
+        server_resp = self.connection.request('/volumes/%s/metadata' % volume.id,
+                                              method='POST',
+                                              data=data_dict)
         try:
-            new_service = lc_conn.service_catalog.get_endpoint(
-                service_type='volume', name='cinder',
-                region=lc_conn.service_region)
-            lc_conn._ex_force_base_url = new_service['publicURL']
-            server_resp = lc_conn.request(
-                '/volumes/detail?all_tenants=1',
-                method='GET')
-            return self._to_volumes(server_resp.object, glance=True)
-        finally:
-            lc_conn._ex_force_base_url = old_endpoint
+            return (server_resp.status == 200, server_resp.object['metadata'])
+        except Exception, e:
+            logger.exception("Exception occured updating volume")
+            return (False, None)
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_delete_volume_metadata_key(self, volume, metadata_key):
+        """
+        """
+        data_dict = {'metadata': metadata}
+        server_resp = self.connection.request(
+                '/volumes/%s/metadata/%s' % (volume.id, metadata_key),
+                                              method='DELETE')
+        try:
+            return server_resp.status == 200
+        except Exception, e:
+            logger.exception("Exception occured Removing Volume Metadata."
+                             " Offending Key=%s" % metadata_key)
+            return False
+
 
     def ex_list_volume_attachments(self, node):
         """
