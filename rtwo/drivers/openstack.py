@@ -840,7 +840,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def list_volumes(self):
         return self._to_volumes(self.connection.request("/os-volumes").object)
 
-    def ex_volume_attached_to_instance(volume, instance_id):
+    def ex_volume_attached_to_instance(self, volume, instance_id):
         volume_match = False
         if not volume:
             return False
