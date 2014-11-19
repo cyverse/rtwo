@@ -127,12 +127,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_stop_node": ["Stops the node"],
         "ex_vnc_console": ["Return a novnc token and url for a node."],
         "create_volume": ["Create volume"],
-        "delete_volume": ["Delete volume"],
         "list_volumes": ["List all volumes"],
-        "update_volume": ["Updates name and metadata on the volume"],
-        "attach_volume": ["Attach volume to node"],
-        "detach_volume": ["Detach volume from node"],
-        "destroy_volume": ["Delete volume"],
         "ex_list_floating_ip_pools": ["List all floating IP Pools"],
         "ex_delete_ports": ["Delete all ports associated with a node"],
         "ex_allocate_floating_ip": ["Allocate floating IP"],
@@ -844,6 +839,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def list_volumes(self):
         return self._to_volumes(self.connection.request("/os-volumes").object)
+
+    def ex_volume_attached_to_instance(volume, instance_id):
+        volume_match = False
+        if not volume:
+            return False
+        attach_data = volume.extra.get('attachments', [])
+        for attachment in attach_data:
+            attached_instance_id = attachment.get('serverId')
+            if not attached_instance_id:
+                continue
+            if attached_instance_id == instance_id:
+                return True
+        return False
 
     def ex_list_all_instances(self):
         """
