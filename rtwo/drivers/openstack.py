@@ -3,6 +3,7 @@ Extension of libcloud's OpenStack Node Driver.
 """
 import binascii
 import copy
+import random
 import json
 import os
 import socket
@@ -82,25 +83,26 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 return response
             except (httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
-                logger.error("Request %s %s%s%s failed with error: %s - %s. Retry #%s/%s"
-                        % (method, self.host, self.port, action, e.__class__.__name__, e.args,
+                _hostname = "%s:%s" % (self.host,self.port)
+                logger.error("Request %s %s%s failed with error: %s - %s. Retry #%s/%s"
+                        % (method, _hostname, action, e.__class__.__name__, e.args,
                            current_attempt, attempts))
                 if current_attempt >= attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
-                            "base_url=%s%s action=%s, params=%s, data=%s,"
+                            "base_url=%s action=%s, params=%s, data=%s,"
                             "method=%s, headers=%s"
-                            % (self.host, self.port, action, params, data, method, headers))
-                    #This 3-arg raise will re-raise the exception.
+                            % (_hostname, action, params, data, method, headers))
+                    #This 3-tuple will re-raise the exception.
                     raise ConnectionFailure,\
-                          "Final connection attempt exhausted: %s" % e,\
+                          "Final connection attempt exhausted:"\
+                          " %s - %s" % (_hostname, e),\
                           sys.exc_info()[2]
-
-                sleep_time = 2 ** current_attempt
-                logger.error("Sleep for %s seconds" % sleep_time)
+                #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
+                sleep_time = random.randint(0,2 ** current_attempt)
                 time.sleep(sleep_time)
+                logger.error("Waited %s seconds. Attempting again." % sleep_time)
             except Exception, e:
                 raise
-            #DON'T FORGET TO WAIT BEFORE YOU RETRY! (4sec, 8sec)
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """

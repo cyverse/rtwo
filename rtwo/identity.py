@@ -40,6 +40,10 @@ class Identity(BaseIdentity):
         self.credentials.update(kwargs)
         self.credentials.update({'key': key, 'secret': secret})
 
+    def get_username(self):
+        return self.credentials['key']
+    def get_groupname(self):
+        return self.credentials['key']
     def __repr__(self):
         return '%s (%s) Credentials: %s' % (self.__class__,
                                             self.credentials.get('key',''),
