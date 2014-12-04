@@ -116,7 +116,8 @@ class NetworkManager(object):
 
 
     def create_project_network(self, username, password,
-                               project_name, get_unique_number=None, **kwargs):
+                               project_name, get_unique_number=None,
+                               dns_nameservers=[], **kwargs):
         """
         This method should be run once when a new project is created
         (As the user):
@@ -144,7 +145,8 @@ class NetworkManager(object):
                                          network['id'],
                                          username,
                                          get_unique_number=get_unique_number,
-                                         get_cidr=get_default_subnet)
+                                         get_cidr=get_default_subnet,
+                                         dns_nameservers=dns_nameservers)
         #self.create_router(user_neutron, '%s-router' % project_name)
         self.add_router_interface(public_router,
                                   subnet,
@@ -455,7 +457,7 @@ class NetworkManager(object):
     def create_user_subnet(self, neutron, subnet_name,
                            network_id, username,
                            ip_version=4, get_unique_number=None,
-                           get_cidr=get_default_subnet):
+                           get_cidr=get_default_subnet, dns_nameservers=[]):
         """
         Create a subnet for the user using the get_cidr function to get
         a private subnet range.
@@ -470,7 +472,7 @@ class NetworkManager(object):
                 if cidr:
                     return self.create_subnet(neutron, subnet_name,
                                               network_id, ip_version,
-                                              cidr)
+                                              cidr, dns_nameservers)
                 else:
                     logger.warn("Unable to create cidr for subnet "
                                 "for user: %s" % username)
@@ -495,21 +497,21 @@ class NetworkManager(object):
             raise Exception("Unable to create subnet for user: %s" % username)
 
     def create_subnet(self, neutron, subnet_name,
-                      network_id, ip_version=4, cidr='172.16.1.0/24'):
+                      network_id, ip_version=4, cidr='172.16.1.0/24',
+                      dns_nameservers=[]):
         existing_subnets = self.find_subnet(subnet_name)
         if existing_subnets:
             logger.info('Subnet %s already exists' % subnet_name)
             return existing_subnets[0]
+        if not dns_nameservers:
+            dns_nameservers = ['8.8.8.8', '8.8.4.4']
         subnet = {
             'name': subnet_name,
             'network_id': network_id,
             'ip_version': ip_version,
             'cidr': cidr,
-            'dns_nameservers':[
-                '128.196.11.233',
-                '128.196.11.234',
-                '128.196.11.235',
-                ]} #['8.8.8.8', '8.8.4.4']}
+            'dns_nameservers': dns_nameservers
+        }
         logger.debug(subnet)
         subnet_obj = neutron.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
