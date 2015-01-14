@@ -376,13 +376,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             #NOTE: This line will likely change in icehouse. Replace it with:
             # "shutdown"  : kwargs.get("shutdown", False),
         }
-        if 'snapshot' in kwargs and not node:
+        if kwargs.get('snapshot') and not node:
             block_device_mapping["source_type"] = "snapshot"
             block_device_mapping["uuid"] = kwargs['snapshot'].id
-        elif 'volume' in kwargs and not node:
+        elif kwargs.get('volume') and not node:
             block_device_mapping["source_type"] = "volume"
             block_device_mapping["uuid"] = kwargs['volume'].id
-        elif 'image' in kwargs and not node:
+        elif kwargs.get('image') and not node:
             block_device_mapping["source_type"] = "image"
             block_device_mapping["uuid"] = kwargs['image'].id
         else:
