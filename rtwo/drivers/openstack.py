@@ -187,6 +187,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def _to_volume(self, api_volume, cinder=False):
         #Unwrap the object, if it wasn't unwrapped already.
+        if not api_volume:
+            return None
         if 'volume' in api_volume:
             api_volume = api_volume['volume']
         if cinder:
@@ -836,7 +838,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         server_resp = self.connection.request('/os-volumes',
                                               method='POST',
                                               data=body)
-        volume_obj =  self._to_volume(server_resp.object['volume'])
+        volume_obj =  self._to_volume(server_resp.object)
         return (server_resp.success(), volume_obj)
 
     def list_volumes(self):
@@ -872,13 +874,43 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET')
         return self._to_volumes(server_resp.object, cinder=True)
 
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_update_volume(self, volume, **volume_updates):
+        """
+        Updates the editable attributes of a volume,
+        Including: display_name, display_description
+        For metadata, see 'ex_update_volume_metadata'
+        """
+        #ARGS formatting
+        if 'name' in volume_updates:
+            volume_updates['display_name'] = \
+                    volume_updates.pop('name')
+        elif 'displayName' in volume_updates:
+            volume_updates['display_name'] = \
+                    volume_updates.pop('displayName')
+        if 'description' in volume_updates:
+            volume_updates['display_description'] = \
+                    volume_updates.pop('description')
+        elif 'displayDescription' in volume_updates:
+            volume_updates['display_description'] = \
+                    volume_updates.pop('displayDescription')
+
+        server_resp = self.connection.request(
+                '/volumes/%s' % volume.id,
+                method='PUT', data={'volume':volume_updates},
+                )
+        return self._to_volume(server_resp.object['volume'], cinder=True)
+
     @swap_service_catalog(service_type="volume", name="cinder")
     def ex_update_volume_metadata(self, volume, metadata):
         """
+        Volume Metadata update
+        metadata == dict of key/value metadata to be associated
         """
         data_dict = {'metadata': metadata}
         server_resp = self.connection.request('/volumes/%s/metadata' % volume.id,
-                                              method='POST',
+                                              method='PUT',
                                               data=data_dict)
         try:
             return (server_resp.status == 200, server_resp.object['metadata'])

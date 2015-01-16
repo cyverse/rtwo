@@ -5,36 +5,52 @@ Atmosphere service instance.
 from threepio import logger
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
-from rtwo.machine import Machine, MockMachine
+from rtwo.volume import OSVolume, Volume, MockVolume
+from rtwo.machine import OSMachine, Machine, MockMachine
 from rtwo.size import Size, MockSize
 
 
 class Instance(object):
 
     owner = None
-
     provider = None
-
-    machine = None
-
+    source = None
+    machine = None # Being phased out.
     size = None
 
+    def _get_source_for_instance(self, node):
+        """
+        Retrieve correct source based on instance details
+        NOTE: Occasionally more data may be required/things may slow down here.
+        """
+        source = self._get_source_volume(node)
+        if source:
+            return source
+        source = self._get_source_snapshot(node)
+        if source:
+            return source
+        source = self._get_source_image(node)
+        return source
+
+    def _get_source_snapshot(self, node):
+        return None
+    def _get_source_image(self, node):
+        return None
+    def _get_source_volume(self, node):
+        return None
+
+
     def __init__(self, node, provider):
+
         self.owner = None # Should be defined per-provider
         self._node = node
         self.id = node.id
         self.alias = node.id
         self.name = node.name
-        #TODO: Remove when we are sure no-one else is using 'the old way'
-        self.image_id = node.extra.get('imageId')
-        if not self.image_id:
-            self.image_id = node.extra.get('image_id')
         self.extra = node.extra
-        self.ip = self.get_public_ip()
         self.provider = provider
-        if Machine.machines.get((self.provider.identifier, self.image_id)):
-            self.machine = Machine.machines[(self.provider.identifier,
-                                             self.image_id)]
+        self.ip = self.get_public_ip()
+        self.source = self._get_source_for_instance(node)
 
     @classmethod
     def get_instances(cls, nodes, provider):
@@ -71,19 +87,17 @@ class Instance(object):
 
     def json(self):
         size_str = None
-        machine_str = None
+        source_str = None
         if not self.size:
             size_str = "None"
         elif type(self.size) == str:
             size_str = self.size
         else:
             size_str = self.size.json()
-        if not self.machine:
-            machine_str = "None"
-        elif type(self.machine) == str:
-            machine_str = self.machine
+        if not self.source:
+            source_str = "None"
         else:
-            machine_str = self.machine.json()
+            source_str = self.source.json()
 
         return {'id': self.id,
                 'alias': self.alias,
@@ -91,7 +105,7 @@ class Instance(object):
                 'ip': self.ip,
                 'provider': self.provider.name,
                 'size': size_str,
-                'machine': machine_str
+                'source': source_str
             }
 
 
@@ -141,46 +155,93 @@ class OSInstance(Instance):
 
         #Unfortunately we can't get the tenant_name..
         self.owner = node.extra.get('tenantId')
+        if not self.size:
+            self.size = self._get_flavor_for_instance(node)
 
-        if not self.machine:
-            # Attempt to do a cache lookup first!
-            self.machine = self.provider.machineCls.lookup_cached_machine(
-                node.extra['imageId'], self.provider.identifier)
-        if not self.machine:
-            self.machine = MockMachine(node.extra['imageId'], self.provider)
-        if not self.size:
-            self.size = self.provider.sizeCls.lookup_size(
-                node.extra['flavorId'], provider)
-        if not self.size:
-            self.size = MockSize(node.extra['flavorId'],
-                                       self.provider)
+    def _check_for_volumes(self, node):
+        booted_volume = node.extra['object'].get('os-extended-volumes:volumes_attached')
+        if type(booted_volume) == list and booted_volume:
+            return booted_volume[0].get('id')
+        elif booted_volume:
+            #As-of-now this is an impossible situation (Always a list)
+            # but in case things change, this is an easy fallback..
+            return booted_volume.get('id')
+        return None
+
+    def _get_source_volume(self, node):
+        """
+        Returns None or OSVolume
+        """
+        #SAFETY check until we can lessen the impact on calls
+        if 'bootable_volume' not in node.extra['metadata']:
+            return None
+        volume_id = self._check_for_volumes(node)
+        if not volume_id:
+            return None
+        volume = self._test_node_is_booted_volume(node, volume_id)
+        if not volume:
+            return None
+        source = OSVolume(volume)
+        return source
+
+    def _test_node_is_booted_volume(self, node, volume_id):
+        """
+        Given a node and a volume_id, return 'volume' if the node
+        is 'running' the volume, otherwise return None 
+        """
+        volume = node.driver.ex_get_volume(volume_id)
+        if not volume:
+            logger.warn("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
+                        " return a volume" % volume_id)
+            return None
+        attachment_data = volume.extra['attachments'][0]
+        if not attachment_data:
+            logger.warn("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
+                        " return attachment data." % volume_id)
+            return None
+        device = attachment_data.get("device")
+        if device and 'vda' in device:
+            return volume
+        #Normal behavior, this is NOT a booted volume.
+        logger.debug("Volume %s listed in 'attached_volumes' but is NOT "
+                     "currently running as an instance." % volume_id)
+        return None
+
+    def _get_source_image(self, node):
+        """
+        NOTE: Always returns a correct source
+        That source may be a 'MockMachine' or an 'OSMachine'
+        """
+        image_id = node.extra.get('imageId')
+        if not image_id:
+            image_id = node.extra.get('image_id')
+        if not image_id:
+            return None
+        machine = self.provider.machineCls.lookup_cached_machine(image_id,
+                self.provider.identifier)
+        if not machine:
+            machine = MockMachine(node.extra['imageId'], self.provider)
+        return machine
 
     def _get_flavor_for_instance(self, node):
+       #Step 1, pure-cache lookup
+        size = self.provider.sizeCls.lookup_size(node.extra['flavorId'],
+                self.provider)
+       #Step 2, driver-fallback, convert to OSSize
         try:
             flavor = node.driver.ex_get_size(node.extra['flavorId'])
             # Add size to cache
-            self.size = self.provider.sizeCls.create_size(
+            size = self.provider.sizeCls.create_size(
                 self.provider, flavor)
-            return self.size
+            return size
         except Exception, no_flavor_found:
-            self.size = MockSize(node.extra['flavorId'], self.provider)
+            #Step 3, all fails, use MockSize.
+            size = MockSize(node.extra['flavorId'], self.provider)
             logger.exception("Instance %s is using a size %s"
-                             "that has been deleted."
+                             "that is deleted/no longer visible"
                              % (node.id, node.extra['flavorId']))
-            return None
+            return size
 
-    def _get_image_for_instance(self, node):
-        try:
-            # Image not in cache, try and add it
-            image = node.driver.ex_get_image(node.extra['imageId'])
-            self.machine = self.provider.machineCls.create_machine(
-                self.provider, image, self.provider.identifier)
-            return self.machine
-        except Exception, no_image_found:
-            logger.exception("Instance %s is using an image %s that has been "
-                        "deleted." % (node.id, node.extra['imageId']))
-            self.machine = MockMachine(node.extra['imageId'], self.provider)
-            return self.machine
     def get_status(self):
         """
         TODO: If openstack: Use extra['task'] and extra['power']

@@ -13,6 +13,19 @@ class BaseVolume(object):
     __metaclass__ = ABCMeta
 
 
+class MockVolume(BaseVolume):
+
+    def __init__(self, volume_id, provider):
+        self._volume = None
+        self.id = volume_id
+        self.alias = volume_id
+        self.size = -1
+        self.attachment_set = []
+        self.extra = {}
+        self.name = "Mock Volume %s" % volume_id
+        self.provider = provider
+
+
 class Volume(BaseVolume):
 
     provider = None

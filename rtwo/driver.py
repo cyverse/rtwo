@@ -71,10 +71,6 @@ class BaseDriver():
         raise NotImplementedError
 
     @abstractmethod
-    def boot_volume(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
     def create_instance(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -128,6 +124,10 @@ class VolumeDriver():
 
     @abstractmethod
     def destroy_volume(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def boot_volume(self, *args, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
