@@ -288,6 +288,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                  if ip not in node.private_ips]
                 #In this special case, it may be a matter of time before the ip
                 #is available.. Atmosphere provides a hint with 'public-ip'
+                #NOTE: Removed because it was causing problems in production
+                #      cloud --Jan. 2015
                 if node.private_ips and not node.public_ips \
                         and 'public-ip' in api_node['metadata']:
                     node.public_ips = [api_node['metadata']['public-ip']]
@@ -525,7 +527,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # Try alternate username
                 # TODO: Need to fix paramiko so we can catch a more specific
                 # exception
-                logger.exception("Could not connect to SSH on IP address %s" %
+                logger.exception("Could not connect to SSH on IP address %s" )
                                  ip_addresses[0])
                 e = sys.exc_info()[1]
                 deploy_error = e

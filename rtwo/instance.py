@@ -15,7 +15,8 @@ class Instance(object):
     owner = None
     provider = None
     source = None
-    machine = None # Being phased out.
+    machine = NotImplementedError(
+            "This field is deprecated. Use 'source' instead")
     size = None
 
     def _get_source_for_instance(self, node):
