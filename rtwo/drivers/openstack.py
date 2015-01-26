@@ -527,7 +527,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # Try alternate username
                 # TODO: Need to fix paramiko so we can catch a more specific
                 # exception
-                logger.exception("Could not connect to SSH on IP address %s" )
+                logger.exception("Could not connect to SSH on IP address %s" %
                                  ip_addresses[0])
                 e = sys.exc_info()[1]
                 deploy_error = e
