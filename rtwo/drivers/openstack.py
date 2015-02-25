@@ -1427,3 +1427,34 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             '/images/%s/metadata/%s' % (image.id, key,),
             method='DELETE')
         return resp.status == httplib.NO_CONTENT
+
+    #Server Shelve Actions
+    def ex_shelve_instance(self, server, **kwargs):
+        try:
+            server_resp = self.connection.request(
+                '/servers/%s/action' % server.id,
+                method='POST',
+                data={'shelve': None})
+            return server_resp.object
+        except Exception, e:
+            raise
+
+    def ex_unshelve_instance(self, server):
+        try:
+            server_resp = self.connection.request(
+                '/servers/%s/action' % server.id,
+                method='POST',
+                data={'unshelve': None})
+            return server_resp.object
+        except Exception, e:
+            raise
+
+    def ex_shelve_offload_instance(self, server):
+        try:
+            server_resp = self.connection.request(
+                '/servers/%s/action' % server.id,
+                method='POST',
+                data={'shelveOffload': None})
+            return server_resp.object
+        except Exception, e:
+            raise
