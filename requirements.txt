@@ -1,5 +1,5 @@
 requests==2.4.1
-apache-libcloud==0.15.1
+apache-libcloud==0.16.0
 threepio==0.2.0
 rfive==0.2.0
 python-irodsclient==0.4.0
