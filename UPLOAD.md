@@ -1,11 +1,19 @@
-HOW TO UPLOAD A VERSION OF RTWO
+How To Upload A New Version of rtwo
 ====
 
 Uploading a new version of rtwo to the pypi can be tough. Here are some pointers.
 
-NOTE: This assumes you have already gone to 'keybase.io', created an account, installed the keybase CLI and executed keybase login. If you haven't done this, you probably should.
+# Keybase is required #
 
-# Update the Version #
+This document does NOT cover:
+ * Going to 'keybase.io'
+ * Creating a Keybase Account
+ * Installing Keybase CLI
+ * calling 'keybase login'
+
+But if you follow those steps above you will be ready to move forward.
+
+# But First, Update the Version! #
 
 Updating the version is CRITICAL when you make changes, because other projects may depend on specific solutions from older versions of rtwo.
 
@@ -16,7 +24,7 @@ Edit the `rtwo/version.py` module and change the appropriate integer in the `VER
 VERSION = (major_change, minor_change, patch_change, 'dev', 0)
 ```
 
-# Create .whl and .tar.gz #
+# Create New Distributables #
 ```bash
 python setup.py sdist bdist_wheel
 ```
@@ -36,7 +44,7 @@ twine upload dist/*
 rm dist/rtwo-$VERSION
 ```
 
-# Installing on dependant machines #
+# Installing New Version On Dependant Machines #
 ```bash
 pip install rtwo==$VERSION
 ```
