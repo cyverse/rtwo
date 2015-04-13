@@ -70,6 +70,15 @@ def swap_service_catalog(service_type=None, name=None):
     return decorator
 
 class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
+    #Ripped from OpenStackBaseConnection.__init__()
+    def __init__(self, *args, **kwargs):
+        if not kwargs.get('timeout'):
+            timeout=30 # Default 30-second timeouts
+        else:
+            timeout = kwargs.pop('timeout')
+        super(OpenStack_Esh_Connection, self).__init__(
+            *args, timeout=timeout, **kwargs)
+
     def request(self, action, params=None,
                 data='', headers=None, method='GET', attempts=3):
         current_attempt = 0
@@ -858,6 +867,15 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             if attached_instance_id == instance_id:
                 return True
         return False
+
+    def ex_list_all_sizes(self):
+        """
+        List all instances from all tenants of a user
+        """
+        server_resp = self.connection.request(
+            '/flavors/detail?all_tenants=1',
+            method='GET')
+        return self._to_sizes(server_resp.object)
 
     def ex_list_all_instances(self):
         """
