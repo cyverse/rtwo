@@ -649,8 +649,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     raise LibcloudError(value='Failed after %d tries: %s'
                                         % (max_tries, str(e)), driver=self)
             else:
-                ssh_client.close()
                 return node
+            finally:
+                ssh_client.close()
+                
 
     def ex_start_node(self, node):
         """
