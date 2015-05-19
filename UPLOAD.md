@@ -3,6 +3,10 @@ How To Upload A New Version of rtwo
 
 Uploading a new version of rtwo to the pypi can be tough. Here are some pointers.
 
+# pip install twine and wheel #
+
+pip install twine wheel
+
 # Keybase is required #
 
 This document does NOT cover:
