@@ -62,7 +62,10 @@ def swap_service_catalog(service_type=None, name=None):
                 new_service = lc_conn.service_catalog.get_endpoint(
                     service_type=service_type, name=name,
                     region=lc_conn.service_region)
-                lc_conn._ex_force_base_url = new_service["url"]
+                if getattr(new_service, "url"):
+                    lc_conn._ex_force_base_url = new_service.url
+                else:
+                    lc_conn._ex_force_base_url = new_service["url"]
                 return method(*args, **kwargs)
             finally:
                 lc_conn._ex_force_base_url = old_endpoint
