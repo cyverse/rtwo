@@ -170,6 +170,8 @@ class NetworkManager(object):
             pass
         except:
             raise
+        #TODO: Remove remaining fixed, floating IPs?
+        #TODO: Where do we break for 'remove_network'?
         self.delete_subnet(self.neutron, '%s-subnet' % project_name)
         if remove_network:
             self.delete_network(self.neutron, '%s-net' % project_name)

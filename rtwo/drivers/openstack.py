@@ -73,7 +73,7 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
     #Ripped from OpenStackBaseConnection.__init__()
     def __init__(self, *args, **kwargs):
         if not kwargs.get('timeout'):
-            timeout=30 # Default 30-second timeouts
+            timeout=8 # Default 8 Second timeouts
         else:
             timeout = kwargs.pop('timeout')
         super(OpenStack_Esh_Connection, self).__init__(
@@ -731,43 +731,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             self._establish_connection()
         return self.connection.auth_user_info.get('id')
 
-    def _get_tenant_id(self):
-        if not self.connection.request_path:
-            self._establish_connection()
-        tenant_id = self.connection.request_path.split('/')[-1]
-        return tenant_id
-
-    def ex_get_quota(self):
-        tenant_id = self._get_tenant_id()
-        return self.connection.request("/os-quota-sets/%s" % tenant_id).object
-
-    def ex_update_quota_for_user(self, tenant_id, user_id, values):
-        """
-        Updates value/values in quota set
-
-        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
-        @type    tenant_id: C{str}
-
-        @keyword user_id: User ID to update. Typically a UUID.
-        @type    user_id: C{str}
-
-        @keyword values: A Dict containing the new key/value for quota set
-        @type    values: C{dict}
-        """
-        values['tenant_id'] = tenant_id
-        body = {'quota_set': values}
-        server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
-                                              % (tenant_id, user_id),
-                                              method='PUT',
-                                              data=body)
-        try:
-            quota_obj = server_resp.object
-            return (server_resp.status == 200, quota_obj)
-        except Exception, e:
-            logger.exception("Exception occured updating quota. Body:%s"
-                             % body)
-            return (False, None)
-
     #Volume Snapshots
     def ex_get_snapshot(self, snapshot_id):
         server_resp = self.connection.request(
@@ -872,6 +835,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         List all instances from all tenants of a user
         """
+        import ipdb;ipdb.set_trace()
         server_resp = self.connection.request(
             '/flavors/detail?all_tenants=1',
             method='GET')
@@ -1055,6 +1019,39 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 self.ex_deallocate_floating_ip(f_ip['id'])
                 count += 1
         return count
+
+    def ex_bulk_delete_floating_ips(self, ip_range):
+        """
+        Deallocate an existing floating_ip from tenants pool
+        """
+        try:
+            # NOTE: the docs show this (in newer openstack?) as:
+            # http://developer.openstack.org/api-ref-compute-v2-ext.html#DeleteFloatingIPBulk
+            # data = {"ip_range":ip_range}
+            data = {"floating_ips_bulk_delete": ip_range}
+            server_resp = self.connection.request(
+                '/os-floating-ips-bulk/delete',
+                method='POST', data=data)
+            return server_resp.object
+        except Exception, e:
+            raise
+
+    def ex_bulk_create_floating_ips(self, ip_range, pool="nova", interface="eth0"):
+        """
+        Deallocate an existing floating_ip from tenants pool
+        """
+        try:
+            data = {"floating_ips_bulk_create": {
+                "ip_range": ip_range,
+                "pool": pool,
+                "interface":interface
+                }}
+            server_resp = self.connection.request(
+                '/os-floating-ips-bulk',
+                method='POST', data=data)
+            return server_resp.object
+        except Exception, e:
+            raise
 
     def ex_add_fixed_ip(self, server, network_id):
         """
