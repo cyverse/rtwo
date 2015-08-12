@@ -692,34 +692,6 @@ class AWSDriver(EshDriver):
         return instance
 
 
-    def filter_machines(self, machines, black_list=[]):
-        """
-        Filtered machines:
-            Keep the machine if it does NOT match any word in the black_list
-        """
-        def _filter_machines(ms, cond):
-            return [m for m in ms if cond(m)]
-        black_list.extend(['bitnami', 'kernel', 'microsoft', 'Windows'])
-        filtered_machines = super(AWSDriver, self).filter_machines(
-            machines, black_list)
-        filtered_machines = _filter_machines(
-            filtered_machines,
-            lambda(m): any(word in m.alias
-                           for word in ['aki-', 'ari-']))
-        filtered_ubuntu = _filter_machines(
-            filtered_machines,
-            lambda(m): any(word == m._image.extra['ownerid']
-                           for word in ['099720109477']))
-#        filtered_ubuntu = [machine for machine in filtered_machines
-#        if any(word == machine._image.extra['ownerid'] for word in
-#        ['099720109477'])]
-        filtered_amazon = _filter_machines(
-            filtered_machines,
-            lambda(m): any(word == m._image.extra['owneralias']
-                           for word in ['amazon', 'aws-marketplace']))
-        filtered_ubuntu.extend(filtered_amazon)
-        return filtered_ubuntu  # [-400:] #return filtered[-400:]
-
     def create_volume(self, *args, **kwargs):
         if 'description' in kwargs:
             kwargs.pop('description')

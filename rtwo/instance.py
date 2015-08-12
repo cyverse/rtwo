@@ -86,6 +86,7 @@ class Instance(object):
     def __repr__(self):
         return str(self)
 
+    #Marked for deletion - SG
     def json(self):
         size_str = None
         source_str = None
@@ -156,6 +157,7 @@ class OSInstance(Instance):
 
         #Unfortunately we can't get the tenant_name..
         self.owner = node.extra.get('tenantId')
+        #New in 0.2.11 - use MockSize and expect user to lookup size.id if they want more than a MockSize!
         if not self.size:
             self.size = self._get_flavor_for_instance(node)
 
@@ -225,23 +227,12 @@ class OSInstance(Instance):
         return machine
 
     def _get_flavor_for_instance(self, node):
-       #Step 1, pure-cache lookup
+        #Step 1, pure-cache lookup
         size = self.provider.sizeCls.lookup_size(node.extra['flavorId'],
                 self.provider)
-       #Step 2, driver-fallback, convert to OSSize
-        try:
-            flavor = node.driver.ex_get_size(node.extra['flavorId'])
-            # Add size to cache
-            size = self.provider.sizeCls.create_size(
-                self.provider, flavor)
-            return size
-        except Exception, no_flavor_found:
-            #Step 3, all fails, use MockSize.
+        if not size:
             size = MockSize(node.extra['flavorId'], self.provider)
-            logger.exception("Instance %s is using a size %s"
-                             "that is deleted/no longer visible"
-                             % (node.id, node.extra['flavorId']))
-            return size
+        return size
 
     def get_status(self):
         """
