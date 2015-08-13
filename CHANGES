@@ -2,3 +2,6 @@
 0.2.11 - Add finally statement to _run_deployment_script to clean up ssh client
          connections.
 0.2.12 - Update swap_service_catalog to use "url" attribute instead of "publicURL".
+0.2.13 - Add support for bulk create/delete floating IPs.
+0.2.14 - Fix performance with meta.all_instances.
+       - Improved meta.occupancy method.
