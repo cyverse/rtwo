@@ -21,25 +21,23 @@ class Instance(object):
 
     def _get_source_for_instance(self, node):
         """
-        Retrieve correct source based on instance details
-        NOTE: Occasionally more data may be required/things may slow down here.
+        Retrieve correct source based on instance details.
         """
-        source = self._get_source_volume(node)
-        if source:
-            return source
-        source = self._get_source_snapshot(node)
-        if source:
-            return source
-        source = self._get_source_image(node)
-        return source
+        for get_source in [self._get_source_image,
+                           self._get_source_volume,
+                           self._get_source_snapshot]:
+            source = get_source(node)
+            if source:
+                return source
 
     def _get_source_snapshot(self, node):
         return None
+
     def _get_source_image(self, node):
         return None
+
     def _get_source_volume(self, node):
         return None
-
 
     def __init__(self, node, provider):
 
@@ -221,15 +219,19 @@ class OSInstance(Instance):
         machine = self.provider.machineCls.lookup_cached_machine(image_id,
                 self.provider.identifier)
         if not machine:
-            machine = MockMachine(node.extra['imageId'], self.provider)
+            machine = MockMachine(image_id, self.provider)
         return machine
 
     def _get_flavor_for_instance(self, node):
-       #Step 1, pure-cache lookup
+        #Step 1, pure-cache lookup
         size = self.provider.sizeCls.lookup_size(node.extra['flavorId'],
-                self.provider)
-       #Step 2, driver-fallback, convert to OSSize
+                                                 self.provider)
+        if size:
+            return size
+        #Step 2, driver-fallback, convert to OSSize
         try:
+            Exception("Extremely inefficient. Do not call ex_get_size "
+                      "all the time.")
             flavor = node.driver.ex_get_size(node.extra['flavorId'])
             # Add size to cache
             size = self.provider.sizeCls.create_size(
@@ -238,7 +240,7 @@ class OSInstance(Instance):
         except Exception, no_flavor_found:
             #Step 3, all fails, use MockSize.
             size = MockSize(node.extra['flavorId'], self.provider)
-            logger.exception("Instance %s is using a size %s"
+            logger.exception("Instance %s is using a size %s "
                              "that is deleted/no longer visible"
                              % (node.id, node.extra['flavorId']))
             return size
