@@ -75,10 +75,9 @@ def swap_service_catalog(service_type=None, name=None):
 class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
     #Ripped from OpenStackBaseConnection.__init__()
     def __init__(self, *args, **kwargs):
-        if not kwargs.get('timeout'):
+        timeout = kwargs.pop('timeout',None)
+        if not timeout:
             timeout=8 # Default 8 Second timeouts
-        else:
-            timeout = kwargs.pop('timeout')
         super(OpenStack_Esh_Connection, self).__init__(
             *args, timeout=timeout, **kwargs)
 

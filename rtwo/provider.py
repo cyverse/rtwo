@@ -259,10 +259,16 @@ class OSProvider(Provider):
         """
         self.options = {'secure': 'False',
                         'ex_force_auth_version': '2.0_password',
-                        'ex_force_auth_url':
-                        'http://heimdall.iplantcollaborative.org:5000/v2.0'}
+                        'ex_force_auth_url': ''
+                       }
         self.options.update(provider_credentials)
         self.options.update(self.identity.credentials)
+        #Basic validation to avoid 'hard-to-reason-about-errors'
+        if self.options['ex_force_auth_version'] == '2.0_password' and 'tokens' not in self.options['ex_force_auth_url']:
+           raise ValueError("Conflicting options -- If you are using '2.0_password' for Keystone Authentication, your auth_url should include '/v2.0/tokens' in addition to the http(s)://hostname:port")
+        elif self.options['ex_force_auth_version'] == '3.x_password' and 'tokens' in self.options['ex_force_auth_url']:
+           raise ValueError("Conflicting options -- If you are using '3.x_password' for Keystone Authentication, your auth_url should NOT include '/v2.0/tokens'. Instead use: http(s)://hostname:port")
+
         return self.options
 
     def get_driver(self, identity, **provider_credentials):
