@@ -735,6 +735,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             self._establish_connection()
         return self.connection.auth_user_info.get('id')
 
+    def _get_tenant_id(self):
+        """
+        After a successful auth, the 'action' will be:
+        /v2/<tenant_id>
+        We are parsing the action to retrieve the tenant_id.
+        """
+        if not self.connection.auth_user_info:
+            self._establish_connection()
+        return self.connection.action.split("/")[-1]
+
     #Volume Snapshots
     def ex_get_snapshot(self, snapshot_id):
         server_resp = self.connection.request(
