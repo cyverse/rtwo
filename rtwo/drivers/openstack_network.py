@@ -10,6 +10,7 @@ OpenStack Network Admin Libarary
       * manage networks within Neutron - openstack networking
 """
 import os
+import netaddr
 
 
 from threepio import logger
@@ -498,6 +499,19 @@ class NetworkManager(object):
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
 
+    def validate_cidr(self, cidr):
+        test_cidr_set = netaddr.IPSet([cidr])
+        all_subnets = self.list_subnets()
+        all_subnet_ips = [ sn['allocation_pools'] for sn in all_subnets ]
+        for idx, subnet_ip_list in enumerate(all_subnet_ips):
+            for subnet_ip_range in subnet_ip_list:
+                test_range = netaddr.IPRange(
+                    subnet_ip_range['start'], subnet_ip_range['end'])
+                for ip in test_range:
+                    if ip in test_cidr_set:
+                        raise Exception("Overlap detected for CIDR %s and Subnet %s" % (cidr, all_subnets[idx]))
+        return True
+
     def create_subnet(self, neutron, subnet_name,
                       network_id, ip_version=4, cidr='172.16.1.0/24',
                       dns_nameservers=[]):
@@ -505,6 +519,7 @@ class NetworkManager(object):
         if existing_subnets:
             logger.info('Subnet %s already exists' % subnet_name)
             return existing_subnets[0]
+        self.validate_cidr(cidr)
         if not dns_nameservers:
             dns_nameservers = ['8.8.8.8', '8.8.4.4']
         subnet = {
