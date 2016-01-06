@@ -736,6 +736,43 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             self._establish_connection()
         return self.connection.auth_user_info.get('id')
 
+    def _get_tenant_id(self):
+        if not self.connection.request_path:
+            self._establish_connection()
+        tenant_id = self.connection.request_path.split('/')[-1]
+        return tenant_id
+
+    def ex_get_quota(self):
+        tenant_id = self._get_tenant_id()
+        return self.connection.request("/os-quota-sets/%s" % tenant_id).object
+
+    def ex_update_quota_for_user(self, tenant_id, user_id, values):
+        """
+        Updates value/values in quota set
+
+        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+        @type    tenant_id: C{str}
+
+        @keyword user_id: User ID to update. Typically a UUID.
+        @type    user_id: C{str}
+
+        @keyword values: A Dict containing the new key/value for quota set
+        @type    values: C{dict}
+        """
+        values['tenant_id'] = tenant_id
+        body = {'quota_set': values}
+        server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
+                                              % (tenant_id, user_id),
+                                              method='PUT',
+                                              data=body)
+        try:
+            quota_obj = server_resp.object
+            return (server_resp.status == 200, quota_obj)
+        except Exception, e:
+            logger.exception("Exception occured updating quota. Body:%s"
+                             % body)
+            return (False, None)
+
     #Volume Snapshots
     def ex_get_snapshot(self, snapshot_id):
         server_resp = self.connection.request(
