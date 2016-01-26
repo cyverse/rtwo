@@ -242,6 +242,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         #logger.debug(api_machine)
         image = super(OpenStack_Esh_NodeDriver, self)._to_image(api_machine)
         image.extra['state'] = api_machine['status'].lower()
+        image.extra['image_size'] = api_machine['OS-EXT-IMG-SIZE:size']  # NOTE: This may change. keep an eye on this.. -Steve
         image.extra['api'] = api_machine
         return image
 
