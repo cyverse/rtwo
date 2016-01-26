@@ -1489,7 +1489,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except Exception, e:
             raise
 
-   def ex_update_quota_for_user(self, tenant_id, user_id, values):
+    def ex_update_quota_for_user(self, tenant_id, user_id, values):
        """
        Updates value/values in quota set
        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
