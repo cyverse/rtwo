@@ -53,6 +53,8 @@ def _connect_to_swift(*args, **kwargs):
 def _connect_to_neutron(*args, **kwargs):
     """
     """
+    if 'v2.0' not in kwargs['auth_url']:
+        kwargs['auth_url'] += "/v2.0"
     neutron = neutron_client.Client(*args, **kwargs)
     neutron.format = 'json'
     return neutron

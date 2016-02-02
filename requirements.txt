@@ -3,9 +3,11 @@ apache-libcloud==0.20.1
 threepio==0.2.0
 rfive==0.2.0
 python-irodsclient==0.4.0
+python-cinderclient==1.5.0
 python-glanceclient==1.2.0
 python-keystoneclient==2.1.1
 python-neutronclient==4.0.0
 python-novaclient==3.2.0
+python-openstackclient==2.0.0
 python-swiftclient==2.7.0
 pbr>=1.8,<2.0
