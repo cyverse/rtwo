@@ -5,7 +5,7 @@ UserManager:
 from hashlib import sha1
 from urlparse import urlparse
 
-from novaclient.v1_1 import client as nova_client
+from novaclient.v2 import client as nova_client
 from novaclient.exceptions import OverLimit
 
 from threepio import logger
