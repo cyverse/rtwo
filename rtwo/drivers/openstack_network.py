@@ -501,8 +501,9 @@ class NetworkManager(object):
 
     def validate_cidr(self, cidr):
         test_cidr_set = netaddr.IPSet([cidr])
-        all_subnets = self.list_subnets()
-        all_subnet_ips = [ sn['allocation_pools'] for sn in all_subnets ]
+        all_subnets = [subnet for subnet in self.list_subnets()
+                       if subnet.get('ip_version', 4) != 6]
+        all_subnet_ips = [sn['allocation_pools'] for sn in all_subnets]
         for idx, subnet_ip_list in enumerate(all_subnet_ips):
             for subnet_ip_range in subnet_ip_list:
                 test_range = netaddr.IPRange(

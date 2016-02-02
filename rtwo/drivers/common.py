@@ -94,7 +94,7 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
 
 def _connect_to_nova(*args, **kwargs):
     kwargs = copy.deepcopy(kwargs)
-    version = kwargs.get('version', '1.1')
+    version = kwargs.get('version', '2')
     region_name = kwargs.get('region_name')
     nova = nova_client.Client(version,
                               kwargs.pop('username'),
@@ -184,7 +184,4 @@ def get_default_subnet(username, inc=0, get_uid_number=None):
     else:
         (block1, block2) = get_ranges(0, inc)
 
-    if username == "jmatt":
-        return "172.16.42.0/24"  # /flex
-    else:
-        return "172.%s.%s.0/24" % (block1, block2)
+    return "172.%s.%s.0/24" % (block1, block2)
