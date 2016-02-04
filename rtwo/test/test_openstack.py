@@ -20,16 +20,10 @@ from libcloud.compute.drivers.openstack import (
     OpenStack_1_1_FloatingIpPool, OpenStack_1_1_FloatingIpAddress,
     OpenStackKeyPair
 )
-from libcloud.compute.base import Node, NodeImage, NodeSize
-from libcloud.pricing import set_pricing, clear_pricing_data
-
-from libcloud.test import MockResponse, MockHttpTestCase, XML_HEADERS
-from libcloud.test.file_fixtures import ComputeFileFixtures, OpenStackFixtures
-from libcloud.test.compute import TestCaseMixin
 from libcloud.test.compute.test_openstack import OpenStack_1_1_MockHttp, \
                                                  OpenStackMockHttp
 from libcloud.test.compute.test_openstack import OpenStack_1_1_Tests
-from rtwo.drivers.openstack import OpenStack_Esh_Connection,OpenStack_Esh_NodeDriver
+from rtwo.drivers.openstack_facade import OpenStack_Esh_Connection,OpenStack_Esh_NodeDriver
 
 ######
 

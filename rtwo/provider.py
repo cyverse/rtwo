@@ -8,7 +8,7 @@ from libcloud.compute.types import Provider as LProvider
 
 from threepio import logger
 
-from rtwo.drivers.openstack import OpenStack_Esh_NodeDriver
+from rtwo.drivers.openstack_facade import OpenStack_Esh_NodeDriver
 from rtwo.drivers.eucalyptus import Eucalyptus_Esh_NodeDriver
 from rtwo.drivers.aws import Esh_EC2NodeDriver
 
