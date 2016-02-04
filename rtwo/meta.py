@@ -1,6 +1,7 @@
 """
 Atmosphere service meta.
 
+DEPRECATION NOTE: This file should be removed. All relevant/useful work should be transferred out of this file.
 """
 from abc import ABCMeta
 from math import floor

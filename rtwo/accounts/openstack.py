@@ -1,6 +1,12 @@
 """
 UserManager:
   Remote Openstack  Admin controls..
+
+
+DEPRECATION NOTE: THIS IS NOT THE ACCOUNTS/OPENSTACK.PY THAT YOU ARE LOOKING FOR!
+YOU WANT THE `accounts/openstack.py` in ATMOSPHERE!
+
+THIS FILE WILL GO AWAY VERY SOON!
 """
 from hashlib import sha1
 from urlparse import urlparse
