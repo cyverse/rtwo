@@ -2,6 +2,7 @@
 Common functions used by all Openstack managers.
 """
 import copy
+import sys
 
 import glanceclient
 from keystoneclient.exceptions import AuthorizationFailure
@@ -14,7 +15,7 @@ from libcloud.compute.deployment import ScriptDeployment
 
 from threepio import logger
 
-from rtwo import settings
+from rtwo.version import version_str as rtwo_version
 
 
 class LoggedScriptDeployment(ScriptDeployment):
@@ -79,20 +80,29 @@ def _connect_to_keystone(*args, **kwargs):
     return keystone
 
 
-def _connect_to_openstack(*args, **kwargs):
+def _connect_to_openstack_sdk(*args, **kwargs):
     """
     Connect to OpenStack SDK client
     """
-    from openstack import connection as openstack_client
+    from openstack import connection as openstack_sdk
+    from openstack import profile
+    from openstack import utils
+    utils.enable_logging(True, stream=sys.stdout)
+
     # Atmosphere was configured on 'v2' naming.
     # This will update the value to the current naming, 'project_name'
+    user_profile = profile.Profile()
+    user_profile.set_region(profile.Profile.ALL, kwargs.get('region_name'))
     if 'project_name' not in kwargs and 'tenant_name' in kwargs:
         kwargs['project_name'] = kwargs.pop('tenant_name')
-    openstack = openstack_client.Connection(
-        user_agent='rtwo',
+
+    user_agent = "rtwo/%s" % (rtwo_version(),)
+    openstack_sdk = openstack_sdk.Connection(
+        user_agent=user_agent,
+        profile=user_profile,
         **kwargs
     )
-    return openstack
+    return openstack_sdk
 
 def _connect_to_glance(keystone, version='1', *args, **kwargs):
     """

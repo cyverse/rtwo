@@ -7,6 +7,10 @@ from os.path import abspath, dirname
 
 VERSION = (0, 3, 0, 'dev', 0)
 
+
+def version_str():
+    return "%s.%s.%s-%s.%s" % VERSION
+
 git_match = "(?P<git_flag>git://)\S*#egg="\
             "(?P<egg>[a-zA-Z0-9-]*[a-zA-Z])"\
             "(?P<opt_version_flag>-)?(?P<opt_version>[0-9][0-9.-]*[0-9])?(?P<dev_flag>-dev)?"
