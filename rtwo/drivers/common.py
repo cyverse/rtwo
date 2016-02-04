@@ -79,6 +79,21 @@ def _connect_to_keystone(*args, **kwargs):
     return keystone
 
 
+def _connect_to_openstack(*args, **kwargs):
+    """
+    Connect to OpenStack SDK client
+    """
+    from openstack import connection as openstack_client
+    # Atmosphere was configured on 'v2' naming.
+    # This will update the value to the current naming, 'project_name'
+    if 'project_name' not in kwargs and 'tenant_name' in kwargs:
+        kwargs['project_name'] = kwargs.pop('tenant_name')
+    openstack = openstack_client.Connection(
+        user_agent='rtwo',
+        **kwargs
+    )
+    return openstack
+
 def _connect_to_glance(keystone, version='1', *args, **kwargs):
     """
     NOTE: We use v1 because moving up to v2 results in a LOSS OF
