@@ -11,7 +11,5 @@ from rtwo.driver import EucaDriver, AWSDriver
 from libcloud.common.types import InvalidCredsError
 
 
-EucaProvider.set_meta()
-AWSProvider.set_meta()
 OSProvider.set_meta()
 
