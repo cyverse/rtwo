@@ -373,13 +373,13 @@ class UserManager():
         except NotFound:
             return None
 
-    def get_project(self, groupname):
+    def get_project(self, project_name, **kwargs):
         """
         Retrieve project
-        Invalid groupname : raise keystoneclient.exceptions.NotFound
+        Invalid project_name : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return find(self.keystone_projects(), name=groupname)
+            return find(self.keystone_projects(), name=project_name, **kwargs)
         except NotFound:
             return None
 
@@ -396,8 +396,8 @@ class UserManager():
     def list_roles(self):
         return self.keystone.roles.list()
 
-    def list_projects(self):
-        return self.keystone_projects().list()
+    def list_projects(self, **kwargs):
+        return self.keystone_projects().list(**kwargs)
 
     def keystone_projects(self):
         if self.keystone_version() == 3:

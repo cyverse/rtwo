@@ -74,9 +74,6 @@ def _connect_to_keystone(*args, **kwargs):
     except AuthorizationFailure as e:
         raise Exception("Authorization Failure: Bad keystone secrets or "
                         "firewall causing a timeout.")
-    if version != 'v2.0':
-        keystone.management_url = keystone.management_url.replace('v2.0', 'v3')
-        keystone.version = 'v3'
     return keystone
 
 
@@ -113,6 +110,11 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
         service_type='image',
         endpoint_type='publicURL')
     auth_token = keystone.service_catalog.get_token()
+    if type(version) == str:
+        if '3' in version:
+            version = 2
+        elif '2' in version:
+            version = 2
     glance = glanceclient.Client(version,
                                  endpoint=glance_endpoint,
                                  token=auth_token['id'])
@@ -121,7 +123,9 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
 
 def _connect_to_nova(*args, **kwargs):
     kwargs = copy.deepcopy(kwargs)
-    version = kwargs.get('version', '2')
+    version = kwargs.pop('version', '2')
+    if 'v3' in version:
+        version = '2'
     region_name = kwargs.get('region_name')
     nova = nova_client.Client(version,
                               kwargs.pop('username'),
