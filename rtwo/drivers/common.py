@@ -10,6 +10,7 @@ from keystoneclient import exceptions
 from swiftclient import client as swift_client
 from novaclient import client as nova_client
 from neutronclient.v2_0 import client as neutron_client
+from openstack import connection as openstack_sdk
 
 from libcloud.compute.deployment import ScriptDeployment
 
@@ -81,13 +82,12 @@ def _connect_to_openstack_sdk(*args, **kwargs):
     """
     Connect to OpenStack SDK client
     """
-    from openstack import connection as openstack_sdk
-    from openstack import profile
-    from openstack import utils
-    utils.enable_logging(True, stream=sys.stdout)
 
     # Atmosphere was configured on 'v2' naming.
     # This will update the value to the current naming, 'project_name'
+    from openstack import profile
+    from openstack import utils
+    utils.enable_logging(True, stream=sys.stdout) # TODO: stream this to _not_ stdout
     user_profile = profile.Profile()
     user_profile.set_region(profile.Profile.ALL, kwargs.get('region_name'))
     if 'project_name' not in kwargs and 'tenant_name' in kwargs:
