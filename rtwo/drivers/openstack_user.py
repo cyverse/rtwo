@@ -226,12 +226,12 @@ class UserManager():
         """
         return self.keystone.roles.create(name=rolename)
 
-    def create_project(self, groupname):
+    def create_project(self, groupname, domain='default'):
         """
         Create a new project
         """
         try:
-            return self.keystone_projects().create(groupname)
+            return self.keystone_projects().create(groupname, domain)
         except Exception, e:
             logger.exception(e)
             raise
@@ -252,7 +252,8 @@ class UserManager():
             project = self.get_project(groupname)
             user = self.get_user(username)
             new_role = self.get_role(rolename)
-            user_obj = project.add_user(user, new_role)
+            user_obj = self.keystone.roles.grant(user=user, project=project, role=new_role)
+
             return new_role
         except Exception, e:
             logger.exception(e)
@@ -265,13 +266,13 @@ class UserManager():
             return None
         new_role = self.get_role(rolename)
         # Check for previous entry
-        existing_roles = user.list_roles(project)
+        existing_roles = self.keystone.roles.list(user=user, project=project)
         for role in existing_roles:
             if role.name == rolename:
                 return role
         return None
 
-    def create_user(self, username, password=None, project=None):
+    def create_user(self, username, password=None, project=None, domain='default'):
         """
         Create a new user
         Invalid groupname : raise keystoneclient.exceptions.NotFound
@@ -280,6 +281,7 @@ class UserManager():
         """
         account_data = {
             'name': username,
+            'domaon': domain,
             'password': password,
             'email': '%s@iplantcollaborative.org' % username,
         }
@@ -393,7 +395,7 @@ class UserManager():
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return find(self.keystone.users, name=username)
+            return self.keystone.users.find(name=username, domain_id='default')
         except NotFound:
             return None
 
