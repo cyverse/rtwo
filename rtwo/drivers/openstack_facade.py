@@ -860,8 +860,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         List all instances from all tenants of a user
         """
+        #NOTE: THIS IS A HACK -- The 'admin' user should be able to see "All the things" -- HOWEVER
+        # In the current implementation of liberty on jetstream, a call to 'list_all_tenants'
+        # Made by a user with a single tenant will produce *IDENTICAL* results to that same call made by admin.
+        # THIS IS CONSIDERED HARMFUL! So we have blocked all users except the admin accounts from making this call.
+        if self.key not in ['atmoadmin','admin']:
+            all_tenants = ""
+        else:
+            all_tenants = "?all_tenants=1"
         server_resp = self.connection.request(
-            '/servers/detail?all_tenants=1',
+            '/servers/detail' %s all_tenants,
             method='GET')
         return self._to_nodes(server_resp.object)
 

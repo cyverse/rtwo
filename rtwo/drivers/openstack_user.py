@@ -40,7 +40,11 @@ class UserManager():
 
     def new_connection(self, *args, **kwargs):
         keystone = _connect_to_keystone(*args, **kwargs)
-        nova = _connect_to_nova(*args, **kwargs)
+        nova_args = kwargs.copy()
+        #HACK - Nova is certified-broken-on-v3. 
+        nova_args['version'] = 'v2.0'
+        nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
+        nova = _connect_to_nova(*args, **nova_args)
         swift_args = self._get_swift_args(*args, **kwargs)
         swift = _connect_to_swift(*args, **swift_args)
         return keystone, nova, swift

@@ -9,9 +9,11 @@ from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
 from swiftclient import client as swift_client
 from novaclient import client as nova_client
+from novaclient import api_versions
 from neutronclient.v2_0 import client as neutron_client
 from openstack import connection as openstack_sdk
-
+from keystoneauth1.identity import v3
+from keystoneauth1.session import Session
 from libcloud.compute.deployment import ScriptDeployment
 
 from threepio import logger
@@ -94,12 +96,12 @@ def _connect_to_openstack_sdk(*args, **kwargs):
         kwargs['project_name'] = kwargs.pop('tenant_name')
 
     user_agent = "rtwo/%s" % (rtwo_version(),)
-    openstack_sdk = openstack_sdk.Connection(
+    stack_sdk = openstack_sdk.Connection(
         user_agent=user_agent,
         profile=user_profile,
         **kwargs
     )
-    return openstack_sdk
+    return stack_sdk
 
 def _connect_to_glance(keystone, version='1', *args, **kwargs):
     """
@@ -120,21 +122,47 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
                                  token=auth_token['id'])
     return glance
 
+def _connect_to_keystoneauth(
+            auth_url, username, password,
+            user_domain_id, project_domain_id):
+    """
+    Connect to keystoneauth (Password) - The v3 way
+    ..Because obviously.. So simple.
+    """
+    keystone_auth = v3.Password(
+        auth_url, username=username,
+        password=password, user_domain_id=user_domain_id,
+        project_domain_id=project_domain_id)
+    return keystone_auth
 
 def _connect_to_nova(*args, **kwargs):
     kwargs = copy.deepcopy(kwargs)
     version = kwargs.pop('version', '2')
-    if 'v3' in version:
-        version = '2'
-    region_name = kwargs.get('region_name')
+    auth_url = kwargs.pop('auth_url')
+    if auth_url.endswith('/'):
+        auth_url = auth_url[:-1]
+    username = kwargs.pop('username')
+    password = kwargs.pop('password')
+    tenant_name = kwargs.pop('tenant_name')
+    region_name = kwargs.pop('region_name')
+    project_domain_id = kwargs.pop('project_domain_id','default')
+    user_domain_id = kwargs.pop('user_domain_id','default')
+    endpoint_type = kwargs.pop('endpoint_type','publicURL')
+    service_type = kwargs.pop('service_type','compute')
+    version = api_versions.APIVersion("2.0")
+    password_auth = _connect_to_keystoneauth(
+        auth_url, username, password,
+        user_domain_id, project_domain_id)
+    #kwargs['auth'] = password_auth
+    kwargs['http_log_debug'] = True
     nova = nova_client.Client(version,
-                              kwargs.pop('username'),
-                              kwargs.pop('password'),
-                              kwargs.pop('tenant_name'),
-                              kwargs.pop('auth_url'),
-                              kwargs.pop('region_name'),
+                              username,
+                              password,
+                              tenant_name,
+                              auth_url=auth_url,
+                              region_name=region_name,
+                              #extensions = self.extensions,
                               *args, no_cache=True, **kwargs)
-    nova.client.region_name = region_name
     return nova
 
 
