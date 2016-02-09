@@ -869,7 +869,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         else:
             all_tenants = "?all_tenants=1"
         server_resp = self.connection.request(
-            '/servers/detail' %s all_tenants,
+            '/servers/detail%s' % all_tenants,
             method='GET')
         return self._to_nodes(server_resp.object)
 
