@@ -375,7 +375,7 @@ class UserManager():
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return find(self.keystone_projects(), id=project_id)
+            return find(self.keystone_projects(), id=project_id, domain_id='default')
         except NotFound:
             return None
 
@@ -384,8 +384,9 @@ class UserManager():
         Retrieve project
         Invalid project_name : raise keystoneclient.exceptions.NotFound
         """
+        domain_id = kwargs.pop('domain_id', 'default')
         try:
-            return find(self.keystone_projects(), name=project_name, **kwargs)
+            return find(self.keystone_projects(), name=project_name, domain_id=domain_id, **kwargs)
         except NotFound:
             return None
 
