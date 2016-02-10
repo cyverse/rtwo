@@ -85,8 +85,13 @@ class UserManager():
           * Monitoring of instances
           * Ops
         """
-        admin_role_created = self.add_project_membership(
+        try:
+            # keystone admin always gets access, always has admin priv.
+            admin_role_created = self.add_project_membership(
                 projectname, self.keystone.username, admin_rolename)
+        except ClientException:
+            logger.warn('Could not assign admin role to username %s' %
+                        self.keystone.username)
         return admin_role_created
 
     def build_security_group(self, username, password, project_name,
