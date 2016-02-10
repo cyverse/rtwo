@@ -286,7 +286,7 @@ class UserManager():
         """
         account_data = {
             'name': username,
-            'domaon': domain,
+            'domain': domain,
             'password': password,
             'email': '%s@iplantcollaborative.org' % username,
         }
