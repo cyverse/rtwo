@@ -76,15 +76,18 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
     #Ripped from OpenStackBaseConnection.__init__()
     def __init__(self, *args, **kwargs):
         timeout = kwargs.pop('timeout',None)
+        self.max_attempts = kwargs.pop('max_attempts',3)
         if not timeout:
             timeout=8 # Default 8 Second timeouts
         super(OpenStack_Esh_Connection, self).__init__(
             *args, timeout=timeout, **kwargs)
 
     def request(self, action, params=None,
-                data='', headers=None, method='GET', attempts=3):
+                data='', headers=None, method='GET', max_attempts=None):
+        if not max_attempts:
+            max_attempts = self.max_attempts
         current_attempt = 0
-        while current_attempt < attempts:
+        while current_attempt < max_attempts:
             try:
                 current_attempt += 1
                 response = super(OpenStack_1_1_Connection, self).request(
@@ -97,8 +100,8 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                 _hostname = "%s:%s" % (self.host,self.port)
                 logger.error("Request %s %s%s failed with error: %s - %s. Retry #%s/%s"
                         % (method, _hostname, action, e.__class__.__name__, e.args,
-                           current_attempt, attempts))
-                if current_attempt >= attempts:
+                           current_attempt, max_attempts))
+                if current_attempt >= max_attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
                             "base_url=%s action=%s, params=%s, data=%s,"
                             "method=%s, headers=%s"
@@ -778,7 +781,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def create_volume(self, size, name,
                       description=None, metadata=None,
-                      location=None, snapshot=None, image=None):
+                      location=None, snapshot=None, image=None, **connection_kwargs):
         """
         Create a new volume
 
@@ -826,7 +829,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         server_resp = self.connection.request('/os-volumes',
                                               method='POST',
-                                              data=body)
+                                              data=body,
+                                              **connection_kwargs)
         volume_obj =  self._to_volume(server_resp.object)
         return (server_resp.success(), volume_obj)
 
