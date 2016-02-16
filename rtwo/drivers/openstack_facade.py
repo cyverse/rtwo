@@ -418,12 +418,15 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Helpful arguments to set:
         ex_keyname : Name of existing public key
         ex_availability_zone : Name of host to launch on
+        ex_connection_kwargs : A dictionary of kwargs to be passed to the connection.
         """
+        conn_kwargs = kwargs.pop('ex_connection_kwargs', {})
         server_params = self._create_args_to_params(None, **kwargs)
 
         resp = self.connection.request("/servers",
                                        method='POST',
-                                       data={'server': server_params})
+                                       data={'server': server_params},
+                                       **conn_kwargs)
 
         create_response = resp.object['server']
         server_resp = self.connection.request(
