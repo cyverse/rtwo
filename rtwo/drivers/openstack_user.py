@@ -37,6 +37,14 @@ class UserManager():
 
     def __init__(self, *args, **kwargs):
         self.keystone, self.nova, self.swift = self.new_connection(*args, **kwargs)
+        auth_version = kwargs.get('version','v2.0')
+        if '2.0' in auth_version:
+            self.version = 2
+        elif '3' in auth_version:
+            self.version = 3
+        else:
+            raise Exception("Could not determine a version of openstack_user based on %s" % auth_version)
+
 
     def new_connection(self, *args, **kwargs):
         keystone = _connect_to_keystone(*args, **kwargs)
@@ -137,7 +145,10 @@ class UserManager():
                                              project_name, security_group_name)
         nova = self.build_nova(username, password, project_name)
         for rule_id in rules:
-            nova.security_group_rules.delete(rule_id)
+            try:
+                nova.security_group_rules.delete(rule_id)
+            except NovaNotFound:
+                pass
 
     def add_security_group_rules(self, username, password, project_name,
             security_group_name, rule_list):
@@ -221,6 +232,41 @@ class UserManager():
                     return True
         return False
 
+    def add_usergroup(self, username, password, createUser=True, adminRole=False):
+        """
+        Create a group for this user only
+        then create the user
+        TODO: drop createUser -- ignored!
+        """
+        #Create user
+        try:
+            user = self.create_user(username, password, username)
+        except ClientException as user_exists:
+            logger.debug('Received Error %s on add, User exists.' %
+                         user_exists)
+            user = self.get_user(username)
+
+        logger.debug("Assign project:%s Member:%s Role:%s" %
+                    (username, username, adminRole))
+
+        #Create project for user/group
+        project = self.get_project(username)
+        if not project:
+            project = self.create_project(username)
+
+        # Check the user has been given an appropriate role
+        admin_role_name = "admin"
+        if not adminRole:
+            role_name = "_member_"
+        else:
+            role_name = admin_role_name
+        try:
+            role = self.add_project_membership(username, username, role_name)
+        except ClientException:
+            logger.warn('Could not assign role to username %s' % username)
+        self.include_admin(username, admin_role_name)
+        return (project, user, role)
+
     def get_usergroup(self, username):
         return self.get_project(username)
 
@@ -286,7 +332,7 @@ class UserManager():
         """
         account_data = {
             'name': username,
-            'domain': domain,
+            'domaon': domain,
             'password': password,
             'email': '%s@iplantcollaborative.org' % username,
         }
@@ -322,7 +368,7 @@ class UserManager():
     def delete_all_roles(self, username, projectname):
         project = self.get_project(projectname)
         user = self.get_user(username)
-        roles = user.list_roles(project)
+        roles = self.list_roles(user=user, project=project)
         for role in roles:
             project.remove_user(user, role)
 
@@ -405,8 +451,14 @@ class UserManager():
         except NotFound:
             return None
 
-    def list_roles(self):
-        return self.keystone.roles.list()
+    def list_roles(self, **kwargs):
+        """
+        See keystoneclient for all kwarguments in List roles
+        The basics:
+        * If passing user=, you must pass project= or domain= for 'pairings'
+        * no kwargs == all roles.
+        """
+        return self.keystone.roles.list(**kwargs)
 
     def list_projects(self, **kwargs):
         return self.keystone_projects().list(**kwargs)
