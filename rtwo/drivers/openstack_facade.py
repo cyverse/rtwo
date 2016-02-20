@@ -188,8 +188,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def _cinder_volume_args(self, api_volume):
         api_volume['createdAt'] = api_volume.pop('created_at')
-        api_volume['displayName']  = api_volume.pop('display_name')
-        api_volume['displayDescription'] = api_volume.pop('display_description')
+        api_volume['displayName']  = api_volume.pop('name', api_volume.pop('display_name','<No Name>'))
+        api_volume['displayDescription'] = api_volume.pop('description', api_volume.pop('display_description',''))
         api_volume['availabilityZone'] = api_volume.pop('availability_zone')
         api_volume['snapshotId'] = api_volume.pop('snapshot_id')
         attachmentSet = api_volume['attachments']
@@ -782,6 +782,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                               data={'server': server_params})
         return (server_resp.status == 200, server_resp.object)
 
+    @swap_service_catalog(service_type="volume", name="cinder")
     def create_volume(self, size, name,
                       description=None, metadata=None,
                       location=None, snapshot=None, image=None, **connection_kwargs):
@@ -809,32 +810,26 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         @keyword image: Create a new volume from existing image (Optional)
         @type    image: C{Image}
         """
-        if not metadata:
-            metadata = {'contents': name}
-        else:
-            metadata['contents'] = name
-
         body = {'volume': {
             'size': size,
             'display_name': name,
-            'display_description': description,
-            'volume_type': None,
-            'imageRef': None,
-            'snapshot_id': None,
-            'metadata': metadata,
-            'availability_zone': location
             }
         }
+        if description:
+            body['volume']['display_description'] = description
+        if location:
+            body['volume']['availability_zone'] = location
         if snapshot:
             body['volume']['snapshot_id'] = snapshot.id
         if image:
             body['volume']['imageRef'] = image.id
-
-        server_resp = self.connection.request('/os-volumes',
+        if connection_kwargs.get('max_attempts'):
+            connection_kwargs['attempts'] = connection_kwargs.pop('max_attempts')
+        import ipdb;ipdb.set_trace()
+        server_resp = self.connection.request('/volumes',  # v3 doesnt use os-volumes anymore
                                               method='POST',
-                                              data=body,
-                                              **connection_kwargs)
-        volume_obj =  self._to_volume(server_resp.object)
+                                              data=body, **connection_kwargs)
+        volume_obj =  self._to_volume(server_resp.object, cinder=True)
         return (server_resp.success(), volume_obj)
 
     def list_volumes(self):
