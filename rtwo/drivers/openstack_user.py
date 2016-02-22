@@ -6,6 +6,7 @@ OpenStack CloudAdmin Libarary
 import os
 
 from keystoneclient.exceptions import NotFound, ClientException
+from keystoneclient.exceptions import Conflict as KeystoneConflict
 from novaclient.exceptions import OverLimit
 from novaclient.exceptions import NotFound as NovaNotFound
 
@@ -282,7 +283,10 @@ class UserManager():
         Create a new project
         """
         try:
-            return self.keystone_projects().create(groupname, domain)
+            if self.keystone_version() == 2:
+                return self.keystone_projects().create(groupname)
+            else:
+                return self.keystone_projects().create(groupname, domain)
         except Exception, e:
             logger.exception(e)
             raise
@@ -295,17 +299,20 @@ class UserManager():
             raise keystoneclient.exceptions.NotFound
         """
         # Check for previous entry
-        existing_role = self.check_membership(groupname, username, rolename)
-        if existing_role:
-            return existing_role
+        existing_grant = self.check_membership(groupname, username, rolename)
+        if existing_grant:
+            return existing_grant
         # Create a new entry
         try:
             project = self.get_project(groupname)
             user = self.get_user(username)
             new_role = self.get_role(rolename)
-            user_obj = self.keystone.roles.grant(user=user, project=project, role=new_role)
-
-            return new_role
+            if self.keystone_version() == 3:
+                role_grant = self.keystone.roles.grant(
+                    user=user, project=project, role=new_role)
+            else:
+                role_grant = project.add_user(user, new_role)
+            return role_grant
         except Exception, e:
             logger.exception(e)
             raise
@@ -316,8 +323,13 @@ class UserManager():
         if not user or not project:
             return None
         new_role = self.get_role(rolename)
-        # Check for previous entry
-        existing_roles = self.keystone.roles.list(user=user, project=project)
+
+        # Check for previous entries
+        if self.keystone_version() == 2:
+            existing_roles = user.list_roles(project)
+        elif self.keystone_version() == 3:
+            existing_roles = self.keystone.roles.list(user=user, project=project)
+
         for role in existing_roles:
             if role.name == rolename:
                 return role
@@ -420,13 +432,15 @@ class UserManager():
         except NotFound:
             return None
 
-    def get_project_by_id(self, project_id):
+    def get_project_by_id(self, project_id, **kwargs):
         """
         Retrieve project
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
+        if self.keystone_version() == 2:
+            kwargs.pop('domain_id', 'default')  # Remove the kwarg
         try:
-            return find(self.keystone_projects(), id=project_id, domain_id='default')
+            return find(self.keystone_projects(), id=project_id, **kwargs)
         except NotFound:
             return None
 
@@ -435,19 +449,22 @@ class UserManager():
         Retrieve project
         Invalid project_name : raise keystoneclient.exceptions.NotFound
         """
-        domain_id = kwargs.pop('domain_id', 'default')
+        if self.keystone_version() == 2:
+            kwargs.pop('domain_id', 'default')  # Remove the kwarg
         try:
-            return find(self.keystone_projects(), name=project_name, domain_id=domain_id, **kwargs)
+            return find(self.keystone_projects(), name=project_name, **kwargs)
         except NotFound:
             return None
 
-    def get_user(self, username):
+    def get_user(self, username, **kwargs):
         """
         Retrieve user
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
+        if self.keystone_version() == 3:
+            kwargs.pop('domain_id', 'default')  # Remove the kwarg
         try:
-            return self.keystone.users.find(name=username, domain_id='default')
+            return self.keystone.users.find(name=username, **kwargs)
         except NotFound:
             return None
 
