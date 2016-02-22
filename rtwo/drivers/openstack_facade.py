@@ -823,9 +823,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             body['volume']['snapshot_id'] = snapshot.id
         if image:
             body['volume']['imageRef'] = image.id
-        if connection_kwargs.get('max_attempts'):
-            connection_kwargs['attempts'] = connection_kwargs.pop('max_attempts')
-        import ipdb;ipdb.set_trace()
         server_resp = self.connection.request('/volumes',  # v3 doesnt use os-volumes anymore
                                               method='POST',
                                               data=body, **connection_kwargs)
