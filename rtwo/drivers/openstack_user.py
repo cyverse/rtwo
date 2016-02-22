@@ -332,13 +332,13 @@ class UserManager():
         """
         account_data = {
             'name': username,
-            'domaon': domain,
             'password': password,
             'email': '%s@iplantcollaborative.org' % username,
         }
         if project:
             if self.keystone_version() == 3:
                 account_data['project'] = project.name
+                account_data['domain'] = domain
             elif self.keystone_version() == 2:
                 account_data['tenant_id'] = project.id
         return self.keystone.users.create(**account_data)
