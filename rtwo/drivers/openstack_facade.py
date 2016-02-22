@@ -849,7 +849,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         List all instances from all tenants of a user
         """
-        import ipdb;ipdb.set_trace()
         server_resp = self.connection.request(
             '/flavors/detail?all_tenants=1',
             method='GET')
