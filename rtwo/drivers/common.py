@@ -89,8 +89,8 @@ def _connect_to_openstack_sdk(*args, **kwargs):
     # This will update the value to the current naming, 'project_name'
     from openstack import profile
     from openstack import utils
-    ex_auth_version = kwargs.get('ex_force_auth_version', '2.0_password')
-    if ex_auth_version.startswith('2'):
+    identity_version = kwargs.get('identity_api_version', 2)
+    if identity_version == 2:
         return None
     utils.enable_logging(True, stream=sys.stdout) # TODO: stream this to _not_ stdout
     user_profile = profile.Profile()

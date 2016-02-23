@@ -463,7 +463,9 @@ class UserManager():
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
         if self.keystone_version() == 3:
-            kwargs.pop('domain_id', 'default')  # Remove the kwarg
+            domain = kwargs.pop('domain', 'default')
+            if 'domain_id' not in kwargs:
+                kwargs['domain_id'] = domain
         try:
             return self.keystone.users.find(name=username, **kwargs)
         except NotFound:
