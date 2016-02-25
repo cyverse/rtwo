@@ -98,6 +98,8 @@ def _connect_to_openstack_sdk(*args, **kwargs):
     if 'project_name' not in kwargs and 'tenant_name' in kwargs:
         kwargs['project_name'] = kwargs.pop('tenant_name')
 
+    user_profile.set_version('identity', 'v%s' % identity_version)
+    user_profile.set_interface('identity', 'admin')
     user_agent = "rtwo/%s" % (rtwo_version(),)
     stack_sdk = openstack_sdk.Connection(
         user_agent=user_agent,
