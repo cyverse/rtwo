@@ -305,6 +305,7 @@ class UserManager():
             return existing_grant
         # Create a new entry
         try:
+            user_kwargs = project_kwargs = {}
             if domain_name:
                 user_kwargs.update({'domain_id':domain_name})
                 project_kwargs.update({'domain_id':domain_name})
