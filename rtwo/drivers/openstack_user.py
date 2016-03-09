@@ -292,7 +292,7 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def add_project_membership(self, groupname, username, rolename):
+    def add_project_membership(self, groupname, username, rolename, domain_name=None):
         """
         Adds user(name) to group(name) with role(name)
 
@@ -300,13 +300,16 @@ class UserManager():
             raise keystoneclient.exceptions.NotFound
         """
         # Check for previous entry
-        existing_grant = self.check_membership(groupname, username, rolename)
+        existing_grant = self.check_membership(groupname, username, rolename, domain_name)
         if existing_grant:
             return existing_grant
         # Create a new entry
         try:
-            project = self.get_project(groupname)
-            user = self.get_user(username)
+            if domain_name:
+                user_kwargs.update({'domain_id':domain_name})
+                project_kwargs.update({'domain_id':domain_name})
+            user = self.get_user(username, **user_kwargs)
+            project = self.get_project(groupname, **project_kwargs)
             new_role = self.get_role(rolename)
             if self.keystone_version() == 3:
                 role_grant = self.keystone.roles.grant(
@@ -318,9 +321,13 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def check_membership(self, projectname, username, rolename):
-        user = self.get_user(username)
-        project = self.get_project(projectname)
+    def check_membership(self, projectname, username, rolename, domain_name=None):
+        user_kwargs = project_kwargs = {}
+        if domain_name:
+            user_kwargs.update({'domain_id':domain_name})
+            project_kwargs.update({'domain_id':domain_name})
+        user = self.get_user(username, **user_kwargs)
+        project = self.get_project(projectname, **project_kwargs)
         if not user or not project:
             return None
         new_role = self.get_role(rolename)
