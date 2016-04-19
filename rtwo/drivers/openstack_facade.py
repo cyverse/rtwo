@@ -31,6 +31,7 @@ except ImportError:
     from xml.etree import ElementTree as ET
 
 from neutronclient.common.exceptions import NeutronClientException
+from requests.exceptions import BaseHTTPError
 
 from rfive.fabricSSH import FabricSSHClient
 
@@ -95,7 +96,7 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                         params=params, data=data,
                         method=method, headers=headers)
                 return response
-            except (httplib.HTTPException, socket.error,
+            except (BaseHTTPError, httplib.HTTPException, socket.error,
                     socket.gaierror, httplib.BadStatusLine), e:
                 _hostname = "%s:%s" % (self.host,self.port)
                 logger.error("Request %s %s%s failed with error: %s - %s. Retry #%s/%s"
@@ -1494,6 +1495,24 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return server_resp.object
         except Exception, e:
             raise
+
+    def ex_list_quota_for_user(self, user_id, tenant_id):
+       """
+       Shows quota for user and tenant_id combinations
+       @keyword user_id: User ID to update. Typically a UUID.
+       @type    user_id: C{str}
+       @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+       @type    tenant_id: C{str}
+       """
+       server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
+                                             % (tenant_id, user_id))
+       try:
+           quota_obj = server_resp.object
+           return (server_resp.status == 200, quota_obj)
+       except Exception, e:
+           logger.exception("Exception occured updating quota. Body:%s"
+                            % body)
+           return (False, None)
 
     def ex_update_quota_for_user(self, tenant_id, user_id, values):
        """
