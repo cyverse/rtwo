@@ -1514,6 +1514,29 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             % body)
            return (False, None)
 
+    def ex_update_quota(self, tenant_id, values):
+       """
+       Updates value/values in quota set
+       @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+       @type    tenant_id: C{str}
+       @keyword values: A Dict containing the new key/value for quota set
+       @type    values: C{dict}
+       """
+       values['tenant_id'] = tenant_id
+       body = {'quota_set': values}
+       server_resp = self.connection.request('/os-quota-sets/%s'
+                                             % (tenant_id,),
+                                             method='PUT',
+                                             data=body)
+       try:
+           quota_obj = server_resp.object
+           return (server_resp.status == 200, quota_obj)
+       except Exception, e:
+           logger.exception("Exception occured updating quota. Body:%s"
+                            % body)
+           return (False, None)
+
+
     def ex_update_quota_for_user(self, tenant_id, user_id, values):
        """
        Updates value/values in quota set
@@ -1533,6 +1556,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
        try:
            quota_obj = server_resp.object
            return (server_resp.status == 200, quota_obj)
+       except BaseHTTPError, e:
+           if 'Quota limit' in e.msg or 'must less' in e.msg:
+               return self.ex_update_quota(self, tenant_id, values)
        except Exception, e:
            logger.exception("Exception occured updating quota. Body:%s"
                             % body)
