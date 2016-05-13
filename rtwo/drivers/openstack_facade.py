@@ -686,9 +686,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         resp = self._node_action(node, 'os-stop')
         return resp.status == httplib.ACCEPTED
 
-    def ex_get_tenant_network(self):
+    def ex_get_tenant_network(self, tenant_id):
         networks = self.ex_list_networks()
         tenant_network = [net for net in networks if tenant_id == net.tenant_id]
+        return tenant_network
 
     def ex_suspend_node(self, node):
         """
@@ -736,6 +737,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except:
             #Will fail,but we MUST make a request to authenticate
             pass
+
+    def _get_username(self):
+        if not self.connection.auth_user_info:
+            self._establish_connection()
+        return self.connection.auth_user_info.get('username')
 
     def _get_user_id(self):
         if not self.connection.auth_user_info:
@@ -876,7 +882,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return self._to_volumes(self.connection.request("/os-volumes").object)
 
     def ex_volume_attached_to_instance(self, volume, instance_id):
-        volume_match = False
         if not volume:
             return False
         attach_data = volume.extra.get('attachments', [])
@@ -918,7 +923,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def _neutron_delete_quota(self, tenant_id):
         if not tenant_id:
             raise Exception("Tenant ID required to delete neutron quota")
-        resp = self.connection.request(
+        server_resp = self.connection.request(
             'v2.0/quotas/%s.json' % tenant_id,
             method='DELETE')
         return server_resp.status == 204
@@ -1036,10 +1041,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_delete_volume_metadata_key(self, volume, metadata_key):
         """
         """
-        data_dict = {'metadata': metadata}
         server_resp = self.connection.request(
                 '/volumes/%s/metadata/%s' % (volume.id, metadata_key),
-                                              method='DELETE')
+                method='DELETE')
         try:
             return server_resp.status == 200
         except Exception, e:
@@ -1395,7 +1399,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Feel free to replace when a better mechanism comes along..
         """
 
-        instance_id = node.id
         try:
             network_manager = self.get_network_manager()
             network_manager.disassociate_floating_ip(node.id)
