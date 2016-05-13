@@ -873,6 +873,28 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return self._to_nodes(server_resp.object)
 
     @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_update_volume_quota(self, username, new_values):
+        lc_conn = self.connection
+        # Check for 'quota_set' wrapper
+        if 'quota_set' not in new_values:
+            new_values = {'quota_set': new_values}
+        server_resp = lc_conn.request(
+            '/os-quota-sets/%s' % username,
+            data=new_values,
+            method='PUT')
+        return server_resp.object.get('quota_set',{})
+
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_show_volume_quota(self, username):
+        lc_conn = self.connection
+        server_resp = lc_conn.request(
+            '/os-quota-sets/%s' % username,
+            method='GET')
+        return server_resp.object.get('quota_set',{})
+
+
+    @swap_service_catalog(service_type="volume", name="cinder")
     def ex_list_all_volumes(self):
         lc_conn = self.connection
         server_resp = lc_conn.request(
