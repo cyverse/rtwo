@@ -671,7 +671,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 return node
             finally:
                 ssh_client.close()
-                
 
     def ex_start_node(self, node):
         """
@@ -751,9 +750,52 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         if not self.connection.auth_user_info:
             self._establish_connection()
-        return self.connection.action.split("/")[-1]
+        action_str = self.connection.action
+        if not action_str or len(action_str.split('/')) < 2:
+            return None
+        return self.connection.action.split("/")[2]
 
     #Volume Snapshots
+    def ex_list_snapshots(self):
+        """
+        List the current users snapshots
+        """
+        server_resp = self.connection.request(
+                '/os-snapshots')
+        return [self._to_snapshot(snapshot)
+                for snapshot in server_resp.object['snapshots']]
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_create_snapshot(self, display_name, display_description,
+                           volume_id, force=True, tenant_id=None):
+        """
+        """
+        body = {
+            'snapshot': {
+                "display_name": display_name,
+                "display_description": display_description,
+                "volume_id": volume_id,
+                "force": force
+            }
+        }
+        if tenant_id:
+            body['tenant_id'] = tenant_id
+        server_resp = self.connection.request(
+                '/snapshots',
+                data=body,
+                method='POST')
+        return self._to_snapshot(server_resp.object)
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def ex_list_all_snapshots(self):
+        """
+        Admins only
+        """
+        server_resp = self.connection.request(
+                '/snapshots/detail?all_tenants=1')
+        return [self._to_snapshot(snapshot)
+                for snapshot in server_resp.object['snapshots']]
+
     def ex_get_snapshot(self, snapshot_id):
         server_resp = self.connection.request(
                 '/os-snapshots/%s' % snapshot_id)
@@ -872,8 +914,52 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET')
         return self._to_nodes(server_resp.object)
 
+    @swap_service_catalog(service_type="network", name="neutron")
+    def _neutron_delete_quota(self, tenant_id):
+        if not tenant_id:
+            raise Exception("Tenant ID required to delete neutron quota")
+        resp = self.connection.request(
+            'v2.0/quotas/%s.json' % tenant_id,
+            method='DELETE')
+        return server_resp.status == 204
+
+    @swap_service_catalog(service_type="network", name="neutron")
+    def _neutron_update_quota(self, tenant_id, new_values):
+        if not tenant_id:
+            raise Exception("Tenant ID required to update neutron quota")
+        # Check for 'quota' wrapper
+        if 'quota' not in new_values:
+            new_values = {'quota': new_values}
+        resp = self.connection.request(
+            'v2.0/quotas/%s.json' % tenant_id,
+            data=new_values,
+            method='PUT')
+        quota = resp.object['quota']
+        return quota
+
+    @swap_service_catalog(service_type="network", name="neutron")
+    def _neutron_show_quota(self, tenant_id=None):
+        # If no tenant ID - use your own tenant ID
+        tenant_resp = self.connection.request('v2.0/quotas/tenant.json')
+        tenant_obj = tenant_resp.object
+        tenant_id = tenant_obj.get('tenant', {}).get('tenant_id', None)
+        if not tenant_id:
+            raise Exception("Error calling /v2.0/quotas/tenant.json - %s" % tenant_obj)
+        # call to show quota:
+        resp = self.connection.request('v2.0/quotas/%s.json' % tenant_id)
+        quota = resp.object['quota']
+        return quota
+
     @swap_service_catalog(service_type="volume", name="cinder")
-    def ex_update_volume_quota(self, username, new_values):
+    def _cinder_delete_quota(self, username):
+        lc_conn = self.connection
+        server_resp = lc_conn.request(
+            '/os-quota-sets/%s' % username,
+            method='DELETE')
+        return server_resp.status == 204
+
+    @swap_service_catalog(service_type="volume", name="cinder")
+    def _cinder_update_quota(self, username, new_values):
         lc_conn = self.connection
         # Check for 'quota_set' wrapper
         if 'quota_set' not in new_values:
@@ -886,7 +972,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
 
     @swap_service_catalog(service_type="volume", name="cinder")
-    def ex_show_volume_quota(self, username):
+    def _cinder_show_quota(self, username):
         lc_conn = self.connection
         server_resp = lc_conn.request(
             '/os-quota-sets/%s' % username,
