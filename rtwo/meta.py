@@ -172,78 +172,6 @@ class OSMeta(Meta):
                                 **provider_creds)
         return admin_driver
 
-    def total_remaining(self, max_, total, used, size):
-        """
-        Given max, total used and size calculate and return a
-        2-tuple with the (max, remaining).
-        """
-        if size != 0:
-            return (floor(max_), floor((total - used) / size))
-        else:
-            return (floor(max_), sys.maxint)
-
-    def _cpu_stats(self, size, cpu_total, cpu_used, cpu_overcommit):
-        if cpu_overcommit > 0:
-            cpu_used = cpu_used - cpu_overcommit
-        # CPUs go by many different, provider-specific names..
-        if hasattr(size._size, 'cpu'):
-            cpu_count = size._size.cpu
-        elif hasattr(size._size, 'vcpus'):
-            cpu_count = size._size.vcpus
-        else:
-            logger.warn("Could not find a CPU value for size %s" % size)
-            cpu_count = -1
-        if cpu_count > 0:
-            max_by_cpu = float(cpu_total)/float(size.cpu)
-        else:
-            # I don't know about this?
-            max_by_cpu = sys.maxint
-        return self.total_remaining(max_by_cpu, cpu_total,
-                                    cpu_used, cpu_count)
-
-    def _ram_stats(self, size, ram_total, ram_used, ram_overcommit):
-        if ram_overcommit > 0:
-            ram_used = ram_used - ram_overcommit
-        if size._size.ram > 0:
-            max_by_ram = float(ram_total) / float(size._size.ram)
-        else:
-            max_by_ram = sys.maxint
-        return self.total_remaining(max_by_ram, ram_total, ram_used, size.ram)
-
-    def _disk_stats(self, size, disk_total, disk_used, disk_overcommit):
-        if disk_overcommit > 0:
-            disk_used = disk_used - disk_overcommit
-        if size._size.disk > 0:
-            max_by_disk = float(disk_total) / float(size._size.disk)
-        else:
-            max_by_disk = sys.maxint
-        return self.total_remaining(max_by_disk, disk_total,
-                                    disk_used, size._size.disk)
-
-    def _calculate_overcommits(self, sizes, remove_totals):
-        instances = self.admin_driver.list_all_instances()
-        size_map = {size.id:size for size in sizes}
-        for instance in instances:
-            if instance.extra['status'] in ['suspended','shutoff']:
-                #oc == OverCommited
-                oc_size = size_map.get(instance.size.id)
-                if not oc_size:
-                    logger.warn("Size %s NOT found in list of sizes. Cannot"
-                                " remove instance %s from calculation"
-                                % (instance.size.id, instance.id))
-                    continue
-                remove_totals['cpu'] = remove_totals['cpu'] + oc_size.cpu
-                remove_totals['ram'] = remove_totals['ram'] + oc_size.ram
-                remove_totals['disk'] = remove_totals['disk'] + oc_size.disk
-        return remove_totals
-
-
-    def _instance_capacity_on_node(self, size, node):
-        pass
-
-    def _instance_capacity_vcpus(self):
-        pass
-
     def _sum_active_compute_nodes(self):
         acs = self._active_compute_nodes()
         return {"total_vcpus": sum([ac["vcpus"] for ac in acs]),
@@ -293,6 +221,9 @@ class OSMeta(Meta):
         return self._scrub_hostname(node["hypervisor_hostname"])
 
     def _add_occupancy(self, occupancy, node, size, instance):
+        """
+        Add instance to accumulator occupancy.
+        """
         node_key = self._get_hashable_node(node)
         occ = occupancy.get(node_key)
         if not occ:
@@ -323,8 +254,7 @@ class OSMeta(Meta):
 #             max_mem,
 #             stats["mem"]/(1.0*max_mem)))
 
-
-    def new_occupancy(self, overcommited=True):
+    def occupancy(self):
         """
         Calculate occupancy using an admin account.
 
@@ -341,48 +271,6 @@ class OSMeta(Meta):
             size = self._get_size(sizes, i)
             self._add_occupancy(occupancy, node, size, i)
         return occupancy
-
-    def occupancy(self, overcommited=False):
-        """
-        Add Occupancy data to NodeSize.extra
-        """
-        occ = self.admin_driver._connection\
-                               .ex_hypervisor_statistics()
-        remove_totals = {
-                'cpu':0,
-                'ram':0,
-                'disk':0
-            }
-        sizes = self.admin_driver.list_sizes()
-        if not overcommited:
-            self._calculate_overcommits(sizes, remove_totals)
-
-        for size in sizes:
-            total_cpu, remaining_cpu = self._cpu_stats(size,
-                                                      occ['vcpus'],
-                                                      occ['vcpus_used'],
-                                                      remove_totals['cpu'])
-        
-            total_ram, remaining_ram = self._ram_stats(size,
-                                                       occ['memory_mb'],
-                                                       occ['memory_mb_used'],
-                                                       remove_totals['ram'])
-            total_disk, remaining_disk = self._disk_stats(size,
-                                                         occ['local_gb'],
-                                                         occ['local_gb_used'],
-                                                         remove_totals['disk'])
-            remaining = min(remaining_cpu,
-                            remaining_ram,
-                            remaining_disk)
-            if remaining == remaining_cpu:
-                total = total_cpu
-            elif remaining == remaining_ram:
-                total = total_ram
-            else:
-                total = total_disk
-            size.extra['occupancy'] = {'total': total,
-                                       'remaining': remaining}
-        return sizes
 
     def add_metadata_deployed(self, machine):
         """
@@ -443,6 +331,7 @@ class OSMeta(Meta):
         return True
 
     def all_instances(self, **kwargs):
+        return self
         return self.provider.instanceCls.get_instances(
             self.admin_driver._connection.ex_list_all_instances(**kwargs),
             self.provider)
