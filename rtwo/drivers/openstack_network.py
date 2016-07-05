@@ -121,7 +121,7 @@ class NetworkManager(object):
 
     def create_project_network(self, username, password,
                                project_name, get_unique_number=None,
-                               dns_nameservers=[], **kwargs):
+                               dns_nameservers=[], use_private_router=False, external_network_name=None, **kwargs):
         """
         This method should be run once when a new project is created
         (As the user):
@@ -135,11 +135,12 @@ class NetworkManager(object):
         region_name = kwargs.get('region_name')
         router_name = kwargs.get('router_name')
         # Step 1. Does public router exist?
-        public_router = self.find_router(router_name)
-        if public_router:
-            public_router = public_router[0]
-        else:
-            raise Exception("Default public router was not found.")
+        if not use_private_router:
+            public_router = self.find_router(router_name)
+            if public_router:
+                public_router = public_router[0]
+            else:
+                raise Exception("Default public router was not found.")
         # Step 2. Set up user-specific virtual network
         user_neutron = self.get_user_neutron(username, password, project_name,
                                              auth_url, region_name)
@@ -151,11 +152,13 @@ class NetworkManager(object):
                                          get_unique_number=get_unique_number,
                                          get_cidr=get_default_subnet,
                                          dns_nameservers=dns_nameservers)
-        #self.create_router(user_neutron, '%s-router' % project_name)
-        self.add_router_interface(public_router,
-                                  subnet,
-                                  '%s-router-intf' % project_name)
-        #self.set_router_gateway(user_neutron, '%s-router' % project_name)
+        if not use_private_router:
+            self.add_router_interface(public_router,
+                                      subnet,
+                                      '%s-router-intf' % project_name)
+        else:
+            self.create_router(user_neutron, '%s-router' % project_name)
+            self.set_router_gateway(user_neutron, '%s-router' % project_name, external_network_name)
         return (network, subnet)
 
     def delete_project_network(self, username, project_name,
@@ -503,14 +506,20 @@ class NetworkManager(object):
             raise Exception("Unable to create subnet for user: %s" % username)
 
     def validate_cidr(self, cidr):
+        logger.info("Attempting to validate cidr %s" % cidr)
         test_cidr_set = netaddr.IPSet([cidr])
         all_subnets = [subnet for subnet in self.list_subnets()
                        if subnet.get('ip_version', 4) != 6]
         all_subnet_ips = [sn['allocation_pools'] for sn in all_subnets]
         for idx, subnet_ip_list in enumerate(all_subnet_ips):
             for subnet_ip_range in subnet_ip_list:
+                (start, end) = (subnet_ip_range['start'], subnet_ip_range['end'])
+                if start.startswith('10') or end.startswith('10') or start.startswith('192') or end.startswith('192'):
+                    continue
                 test_range = netaddr.IPRange(
                     subnet_ip_range['start'], subnet_ip_range['end'])
+                if len(test_range) > 1000:
+                    continue
                 for ip in test_range:
                     if ip in test_cidr_set:
                         raise Exception("Overlap detected for CIDR %s and Subnet %s" % (cidr, all_subnets[idx]))
@@ -523,7 +532,7 @@ class NetworkManager(object):
         if existing_subnets:
             logger.info('Subnet %s already exists' % subnet_name)
             return existing_subnets[0]
-        self.validate_cidr(cidr)
+        #self.validate_cidr(cidr)
         if not dns_nameservers:
             dns_nameservers = ['8.8.8.8', '8.8.4.4']
         subnet = {
