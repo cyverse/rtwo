@@ -404,6 +404,7 @@ class UserManager():
         """
         project = self.get_project(groupname)
         user = self.get_user(username)
+        #FIXME: Hardcoded values
         if adminRole:
             role = self.get_role('admin')
         else:

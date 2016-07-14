@@ -15,8 +15,7 @@ import netaddr
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_neutron,\
-    get_default_subnet
+from rtwo.drivers.common import _connect_to_neutron
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 
 class NetworkManager(object):
@@ -118,71 +117,6 @@ class NetworkManager(object):
         user_neutron = self.new_connection(**user_creds)
         return user_neutron
 
-
-    def create_project_network(self, username, password,
-                               project_name, get_unique_number=None,
-                               dns_nameservers=[], use_private_router=False, external_network_name=None, **kwargs):
-        """
-        This method should be run once when a new project is created
-        (As the user):
-        Create a network, subnet, and router
-        Add interface between router and network
-        (As admin):
-        Add interface between router and gateway
-        """
-
-        auth_url = kwargs.get('auth_url')
-        region_name = kwargs.get('region_name')
-        router_name = kwargs.get('router_name')
-        # Step 1. Does public router exist?
-        if not use_private_router:
-            public_router = self.find_router(router_name)
-            if public_router:
-                public_router = public_router[0]
-            else:
-                raise Exception("Default public router was not found.")
-        # Step 2. Set up user-specific virtual network
-        user_neutron = self.get_user_neutron(username, password, project_name,
-                                             auth_url, region_name)
-        network = self.create_network(user_neutron, '%s-net' % project_name)
-        subnet = self.create_user_subnet(user_neutron,
-                                         '%s-subnet' % project_name,
-                                         network['id'],
-                                         username,
-                                         get_unique_number=get_unique_number,
-                                         get_cidr=get_default_subnet,
-                                         dns_nameservers=dns_nameservers)
-        if not use_private_router:
-            self.add_router_interface(public_router,
-                                      subnet,
-                                      '%s-router-intf' % project_name)
-        else:
-            self.create_router(user_neutron, '%s-router' % project_name)
-            self.set_router_gateway(user_neutron, '%s-router' % project_name, external_network_name)
-        return (network, subnet)
-
-    def delete_project_network(self, username, project_name,
-                               remove_network=True):
-        """
-        remove_interface_router
-        delete_subnet
-        delete_network
-        """
-        try:
-            self.remove_router_interface(self.neutron,
-                                         self.default_router,
-                                         '%s-subnet' % project_name)
-        except NotFound:
-            #This is OKAY!
-            pass
-        except:
-            raise
-        #TODO: Remove remaining fixed, floating IPs?
-        #TODO: Where do we break for 'remove_network'?
-        self.delete_subnet(self.neutron, '%s-subnet' % project_name)
-        if remove_network:
-            self.delete_network(self.neutron, '%s-net' % project_name)
-
     def disassociate_floating_ip(self, server_id):
         """
         Remove floating IP from the server <server_id>
@@ -275,7 +209,7 @@ class NetworkManager(object):
         #logger.debug(floating_ips)
         return floating_ips
 
-    def rename_security_group(self, project):
+    def rename_security_group(self, project, security_group_name=None):
         security_group_resp = self.neutron.list_security_groups(
                 tenant_id=project.id)
         default_group_id = None
@@ -286,9 +220,12 @@ class NetworkManager(object):
         if not default_group_id:
             raise Exception("Could not find the security group named 'default'")
         try:
+            if not security_group_name:
+                security_group_name = project.name
+            #FIXME: we don't actually name it?
             sec_group = self.neutron.update_security_group(
                     default_group_id,
-                    {"security_group": {"description": project.name}})
+                    {"security_group": {"description": security_group_name}})
             return sec_group
         except NeutronClientException:
             logger.exception("Problem updating description of 'default'"
@@ -463,47 +400,6 @@ class NetworkManager(object):
         network_obj = neutron.create_network({'network': network})
         return network_obj['network']
 
-    def create_user_subnet(self, neutron, subnet_name,
-                           network_id, username,
-                           ip_version=4, get_unique_number=None,
-                           get_cidr=get_default_subnet, dns_nameservers=[]):
-        """
-        Create a subnet for the user using the get_cidr function to get
-        a private subnet range.
-        """
-        success = False
-        inc = 0
-        MAX_SUBNET = 4064
-        cidr = None
-        while not success and inc < MAX_SUBNET:
-            try:
-                cidr = get_cidr(username, inc, get_unique_number)
-                if cidr:
-                    return self.create_subnet(neutron, subnet_name,
-                                              network_id, ip_version,
-                                              cidr, dns_nameservers)
-                else:
-                    logger.warn("Unable to create cidr for subnet "
-                                "for user: %s" % username)
-                    inc += 1
-            except NeutronClientException as nce:
-                if "overlap" in nce.message:
-                    # expected output. hash already use, add one and try another subnet.
-                    inc += 1
-                else:
-                    logger.exception("Unable to create subnet for user: %s" % username)
-                    inc += 1
-                if not get_unique_number:
-                    logger.warn("No get_unique_number method "
-                                "provided for user: %s" % username)
-            except Exception as e:
-                logger.exception("Unable to create subnet for user: %s" % username)
-                if not get_unique_number:
-                    logger.warn("No get_unique_number method "
-                                "provided for user: %s" % username)
-                inc += 1
-        if not success or not cidr:
-            raise Exception("Unable to create subnet for user: %s" % username)
 
     def validate_cidr(self, cidr):
         logger.info("Attempting to validate cidr %s" % cidr)
@@ -611,7 +507,7 @@ class NetworkManager(object):
     def remove_router_interface(self, neutron, router_name, subnet_name):
         router_id = self.get_router_id(neutron, router_name)
         subnet_id = self.get_subnet_id(neutron, subnet_name)
-        #TODO: Ensure no instances/IPs are using the interface
+        #FIXME: Ensure no instances/IPs are using the interface
         # && raise an error if they try!
         if router_id and subnet_id:
             try:
