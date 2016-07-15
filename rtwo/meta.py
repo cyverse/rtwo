@@ -12,9 +12,9 @@ from threepio import logger
 
 from rtwo import settings
 
-from rtwo.provider import AWSProvider, EucaProvider, OSProvider,\
+from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider,\
     OSValhallaProvider
-from rtwo.identity import AWSIdentity, EucaIdentity, OSIdentity
+from rtwo.models.identity import AWSIdentity, EucaIdentity, OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 from rtwo.linktest import active_instances
 

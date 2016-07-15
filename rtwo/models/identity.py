@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from threepio import logger
 
 from rtwo.exceptions import MissingArgsException
-from rtwo.provider import AWSProvider, EucaProvider, OSProvider
+from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
 
 
 class BaseIdentity(object):

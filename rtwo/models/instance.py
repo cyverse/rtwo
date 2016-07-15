@@ -4,10 +4,10 @@ Atmosphere service instance.
 """
 from threepio import logger
 
-from rtwo.provider import AWSProvider, EucaProvider, OSProvider
-from rtwo.volume import OSVolume, Volume, MockVolume
-from rtwo.machine import OSMachine, Machine, MockMachine
-from rtwo.size import Size, MockSize
+from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
+from rtwo.models.volume import OSVolume, Volume, MockVolume
+from rtwo.models.machine import OSMachine, Machine, MockMachine
+from rtwo.models.size import Size, MockSize
 
 
 class Instance(object):

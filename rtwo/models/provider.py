@@ -127,11 +127,11 @@ class AWSProvider(Provider):
 
     @classmethod
     def set_meta(cls):
-        from rtwo.identity import AWSIdentity
-        from rtwo.machine import AWSMachine
-        from rtwo.instance import AWSInstance
-        from rtwo.size import AWSSize
-        from rtwo.volume import AWSVolume
+        from rtwo.models.identity import AWSIdentity
+        from rtwo.models.machine import AWSMachine
+        from rtwo.models.instance import AWSInstance
+        from rtwo.models.size import AWSSize
+        from rtwo.models.volume import AWSVolume
         from rtwo.meta import AWSMeta
         cls.identityCls = AWSIdentity
         cls.machineCls = AWSMachine
@@ -183,11 +183,11 @@ class EucaProvider(Provider):
 
     @classmethod
     def set_meta(cls):
-        from rtwo.identity import EucaIdentity
-        from rtwo.machine import EucaMachine
-        from rtwo.instance import EucaInstance
-        from rtwo.size import EucaSize
-        from rtwo.volume import EucaVolume
+        from rtwo.models.identity import EucaIdentity
+        from rtwo.models.machine import EucaMachine
+        from rtwo.models.instance import EucaInstance
+        from rtwo.models.size import EucaSize
+        from rtwo.models.volume import EucaVolume
         from rtwo.meta import EucaMeta
         cls.identityCls = EucaIdentity
         cls.machineCls = EucaMachine
@@ -238,11 +238,11 @@ class OSProvider(Provider):
 
     @classmethod
     def set_meta(cls):
-        from rtwo.identity import OSIdentity
-        from rtwo.machine import OSMachine
-        from rtwo.instance import OSInstance
-        from rtwo.size import OSSize
-        from rtwo.volume import OSVolume
+        from rtwo.models.identity import OSIdentity
+        from rtwo.models.machine import OSMachine
+        from rtwo.models.instance import OSInstance
+        from rtwo.models.size import OSSize
+        from rtwo.models.volume import OSVolume
         from rtwo.meta import OSMeta
         cls.identityCls = OSIdentity
         cls.machineCls = OSMachine

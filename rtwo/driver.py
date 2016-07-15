@@ -20,13 +20,13 @@ from rtwo.drivers.common import LoggedScriptDeployment
 
 from rtwo.exceptions import MissingArgsException, ServiceException
 
-from rtwo.provider import AWSProvider
-from rtwo.provider import EucaProvider
-from rtwo.provider import OSProvider
+from rtwo.models.provider import AWSProvider
+from rtwo.models.provider import EucaProvider
+from rtwo.models.provider import OSProvider
 
-from rtwo.identity import AWSIdentity
-from rtwo.identity import EucaIdentity
-from rtwo.identity import OSIdentity
+from rtwo.models.identity import AWSIdentity
+from rtwo.models.identity import EucaIdentity
+from rtwo.models.identity import OSIdentity
 
 from rtwo.mixins.driver import APIFilterMixin, MetaMixin,\
     InstanceActionMixin
