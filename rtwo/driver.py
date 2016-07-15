@@ -367,7 +367,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
         """
         DEPRECATED:
         """
-        os_args = copy.deepcopy(settings.OPENSTACK_ARGS)
+        os_args = {}
         try:
             username = os_args.pop('username')
             password = os_args.pop('password')
@@ -380,8 +380,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
         OSProvider.set_meta()
         provider = OSProvider()
         identity = OSIdentity(provider, username, password,
-                              ex_tenant_name=tenant_name,
-                              **settings.OPENSTACK_ARGS)
+                              ex_tenant_name=tenant_name)
         driver = cls(provider, identity)
         return driver
 
