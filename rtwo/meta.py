@@ -156,13 +156,16 @@ class OSMeta(Meta):
     provider = OSProvider
 
     def create_admin_driver(self, creds=None):
+        """
+        DEPRECATED
+        """
         admin_provider = OSProvider()
         provider_creds = self.provider_options
         key, secret, tenant =\
             self._split_creds(creds,
-                              settings.OPENSTACK_ADMIN_KEY,
-                              settings.OPENSTACK_ADMIN_SECRET,
-                              settings.OPENSTACK_ADMIN_TENANT)
+                              '',
+                              '',
+                              '')
         admin_identity = OSIdentity(admin_provider,
                                     key,
                                     secret,

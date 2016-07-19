@@ -30,11 +30,7 @@ class AccountDriver():
 
     def __init__(self, *args, **kwargs):
         network_args = {}
-        network_args.update(settings.OPENSTACK_ARGS)
-        network_args.update(settings.OPENSTACK_NETWORK_ARGS)
 
-        self.user_manager = UserManager(**settings.OPENSTACK_ARGS.copy())
-        self.network_manager = NetworkManager(**network_args)
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
 
@@ -56,7 +52,7 @@ class AccountDriver():
         }
 
     def _get_horizon_url(self, tenant_id):
-        parsed_url = urlparse(settings.OPENSTACK_AUTH_URL)
+        parsed_url = urlparse("")
         return 'https://%s/horizon/auth/switch/%s/?next=/horizon/project/' %\
             (parsed_url.hostname, tenant_id)
 
@@ -68,10 +64,7 @@ class AccountDriver():
         finished = False
         # Special case for admin.. Use the Openstack admin identity..
         if username == 'admin':
-            ident = self.create_openstack_identity(
-                settings.OPENSTACK_ADMIN_KEY,
-                settings.OPENSTACK_ADMIN_SECRET,
-                settings.OPENSTACK_ADMIN_TENANT)
+            ident = self.create_openstack_identity('','','')
             return ident
         #Attempt account creation
         while not finished:
@@ -167,8 +160,7 @@ class AccountDriver():
         usergroups = []
         for group in groups:
             for user in users:
-                if user.name in group.name and\
-                   settings.OPENSTACK_ADMIN_KEY not in user.name:
+                if user.name in group.name:
                     usergroups.append((user, group))
                     break
         return usergroups
