@@ -2,7 +2,8 @@
 Atmosphere service exceptions.
 
 """
-from neutronclient.common.exceptions import NeutronClientException, NotFound as NeutronNotFound, BadRequest as NeutronBadRequest, OverLimit as NeutronOverLimit, NeutronException
+from neutronclient.common.exceptions import NeutronClientException, NotFound as NeutronNotFound, BadRequest as NeutronBadRequest, NeutronException
+from novaclient.exceptions import OverLimit as NovaOverLimit
 from keystoneclient.apiclient.exceptions import Unauthorized as KeystoneUnauthorized
 from glanceclient.exc import HTTPConflict as GlanceConflict, HTTPForbidden as GlanceForbidden
 from libcloud.common.types import InvalidCredsError as LibcloudInvalidCredsError, MalformedResponseError as LibcloudBadResponseError
