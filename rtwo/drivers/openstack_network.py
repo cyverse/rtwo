@@ -477,7 +477,7 @@ class NetworkManager(object):
                 already exists' % (external_network_name, router_name))
             return existing_gateways[0]
         #Establish the router_gateway
-        router_id = self.get_router_id(neutron, router_name)
+        router_id = self.get_router_id(self.neutron, router_name)
         external_network = self.get_network_id(neutron, external_network_name)
         body = {'network_id': external_network}
         return self.neutron.add_gateway_router(router_id, body)
@@ -505,7 +505,7 @@ class NetworkManager(object):
             return self.neutron.remove_gateway_router(router_id)
 
     def remove_router_interface(self, neutron, router_name, subnet_name):
-        router_id = self.get_router_id(neutron, router_name)
+        router_id = self.get_router_id(self.neutron, router_name)
         subnet_id = self.get_subnet_id(neutron, subnet_name)
         #FIXME: Ensure no instances/IPs are using the interface
         # && raise an error if they try!
@@ -525,7 +525,7 @@ class NetworkManager(object):
                 raise
 
     def delete_router(self, neutron, router_name):
-        router_id = self.get_router_id(neutron, router_name)
+        router_id = self.get_router_id(self.neutron, router_name)
         if router_id:
             try:
                 return neutron.delete_router(router_id)

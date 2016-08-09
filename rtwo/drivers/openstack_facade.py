@@ -77,9 +77,12 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
     #Ripped from OpenStackBaseConnection.__init__()
     def __init__(self, *args, **kwargs):
         timeout = kwargs.pop('timeout',None)
-        self.max_attempts = kwargs.pop('max_attempts',3)
+        #NOTE: If 'max attempts' is logic available in libcloud, Remove this and the 'request' logic, in favor of:
+        # RETRY_FAILED_HTTP_REQUESTS: https://github.com/apache/libcloud/blob/trunk/libcloud/common/base.py#L76-L77
+        # Be sure to set `retry_delay` and `backoff` in addition to `timeout`..
+        self.max_attempts = kwargs.pop('max_attempts',2)
         if not timeout:
-            timeout=8 # Default 8 Second timeouts
+            timeout = 20 # Default 20 Second timeouts
         super(OpenStack_Esh_Connection, self).__init__(
             *args, timeout=timeout, **kwargs)
 
@@ -104,7 +107,7 @@ class OpenStack_Esh_Connection(OpenStack_1_1_Connection):
                            current_attempt, max_attempts))
                 if current_attempt >= max_attempts:
                     logger.error("Final attempt failed! Request diagnostics:"
-                            "base_url=%s action=%s, params=%s, data=%s,"
+                            "URL:%s/%s, params=%s, data=%s,"
                             "method=%s, headers=%s"
                             % (_hostname, action, params, data, method, headers))
                     #This 3-tuple will re-raise the exception.
