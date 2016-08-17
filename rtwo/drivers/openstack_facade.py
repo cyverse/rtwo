@@ -746,7 +746,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         This function will contact keystone for authorization
         and make an empty request to the server.
 
-        Doing this will provide self.connection.auth_user_info.
+        Doing this will provide self.connection.auth_token.
         """
         try:
             self.connection.request('')
@@ -755,14 +755,14 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             pass
 
     def _get_username(self):
-        if not self.connection.auth_user_info:
-            self._establish_connection()
-        return self.connection.auth_user_info.get('username')
+        #if not self.connection.auth_token:
+        #    self._establish_connection()
+        return self.key
 
     def _get_user_id(self):
-        if not self.connection.auth_user_info:
+        if not self.connection.auth_token:
             self._establish_connection()
-        return self.connection.auth_user_info.get('id')
+        return self.connection.auth_token.get('id')
 
     def _get_tenant_id(self):
         """
@@ -770,7 +770,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         /v2/<tenant_id>
         We are parsing the action to retrieve the tenant_id.
         """
-        if not self.connection.auth_user_info:
+        if not self.connection.auth_token:
             self._establish_connection()
         action_str = self.connection.action
         if not action_str or len(action_str.split('/')) < 2:
