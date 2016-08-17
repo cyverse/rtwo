@@ -940,7 +940,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if not tenant_id:
             raise Exception("Tenant ID required to delete neutron quota")
         server_resp = self.connection.request(
-            'v2.0/quotas/%s.json' % tenant_id,
+            '/v2.0/quotas/%s.json' % tenant_id,
             method='DELETE')
         return server_resp.status == 204
 
@@ -952,7 +952,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if 'quota' not in new_values:
             new_values = {'quota': new_values}
         resp = self.connection.request(
-            'v2.0/quotas/%s.json' % tenant_id,
+            '/v2.0/quotas/%s.json' % tenant_id,
             data=new_values,
             method='PUT')
         quota = resp.object['quota']
@@ -961,13 +961,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     @swap_service_catalog(service_type="network", name="neutron")
     def _neutron_show_quota(self, tenant_id=None):
         # If no tenant ID - use your own tenant ID
-        tenant_resp = self.connection.request('v2.0/quotas/tenant.json')
+        tenant_resp = self.connection.request('/v2.0/quotas/tenant.json')
         tenant_obj = tenant_resp.object
         tenant_id = tenant_obj.get('tenant', {}).get('tenant_id', None)
         if not tenant_id:
             raise Exception("Error calling /v2.0/quotas/tenant.json - %s" % tenant_obj)
         # call to show quota:
-        resp = self.connection.request('v2.0/quotas/%s.json' % tenant_id)
+        resp = self.connection.request('/v2.0/quotas/%s.json' % tenant_id)
         quota = resp.object['quota']
         return quota
 
