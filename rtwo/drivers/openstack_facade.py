@@ -363,15 +363,28 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     #        ex_force_service_name='keystone')
 
     @swap_service_catalog(service_type="identity", name="keystone")
+    def _keystone_list_users(self):
+        user_resp = self.connection.request('/users').object
+        all_users = user_resp['users']
+        return all_users
+
+    def _keystone_get_user(self, username):
+        all_users = self._keystone_list_users()
+        for user in all_users:
+            if user['username'] == username or user['id'] == username:
+                return user
+        return None
+
+    @swap_service_catalog(service_type="identity", name="keystone")
     def _keystone_list_tenants(self):
         tenant_resp = self.connection.request('/tenants').object
         all_tenants = tenant_resp['tenants']
         return all_tenants
 
-    def _keystone_get_tenant(self, tenant_id):
+    def _keystone_get_tenant(self, tenant_id_or_name):
         all_tenants = self._keystone_list_tenants()
         for tenant in all_tenants:
-            if tenant['id'] == tenant_id:
+            if tenant['id'] == tenant_id_or_name or tenant['name'] == tenant_id_or_name:
                 return tenant
         return None
 
