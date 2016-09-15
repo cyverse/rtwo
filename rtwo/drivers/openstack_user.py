@@ -306,7 +306,7 @@ class UserManager():
         # Create a new entry
         try:
             user_kwargs = project_kwargs = {}
-            if domain_name:
+            if domain_name and self.keystone_version() != 2:
                 user_kwargs.update({'domain_id':domain_name})
                 project_kwargs.update({'domain_id':domain_name})
             user = self.get_user(username, **user_kwargs)
@@ -318,6 +318,10 @@ class UserManager():
             else:
                 role_grant = project.add_user(user, new_role)
             return role_grant
+        except KeystoneConflict, keystone_err:
+            if 'already has role' in keystone_err.message:
+                return None
+            raise
         except Exception, e:
             logger.exception(e)
             raise
