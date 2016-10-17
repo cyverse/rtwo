@@ -393,9 +393,13 @@ class UserManager():
     def delete_all_roles(self, username, projectname):
         project = self.get_project(projectname)
         user = self.get_user(username)
-        roles = self.list_roles(user=user, project=project)
+        #roles = self.list_roles(user=user, project=project)
+        roles = self.list_roles()
         for role in roles:
-            project.remove_user(user, role)
+            try:
+                project.remove_user(user, role)
+            except NovaNotFound, NotFound:
+                continue
 
 
     def delete_project_member(self, groupname, username, adminRole=False):
