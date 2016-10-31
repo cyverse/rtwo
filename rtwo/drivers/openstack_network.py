@@ -18,6 +18,12 @@ from threepio import logger
 from rtwo.drivers.common import _connect_to_neutron
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 
+ROUTER_INTERFACE_NAMESPACE = (
+    'network:router_interface',
+    'network:router_interface_distributed',
+    'network:ha_router_replicated_interface'
+)
+
 class NetworkManager(object):
 
     neutron = None
@@ -326,7 +332,7 @@ class NetworkManager(object):
         return [net for net in self.list_routers()
                 if router_name == net['name']]
 
-    def find_ports(self, router_name):
+    def find_ports_for_router(self, router_name):
         routers = self.find_router(router_name)
         if not routers:
             return []
@@ -365,10 +371,10 @@ class NetworkManager(object):
         #Return the router interfaces matching router+subnet
         router_name = router['name']
         subnet_id = subnet['id']
-        router_ports = self.find_ports(router_name)
+        router_ports = self.find_ports_for_router(router_name)
         router_interfaces = []
         for port in router_ports:
-            if 'router_interface' not in port['device_owner']:
+            if port['device_owner'] not in ROUTER_INTERFACE_NAMESPACE:
                 continue
             subnet_match = False
             for ip_subnet_obj in port['fixed_ips']:
