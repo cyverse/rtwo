@@ -615,7 +615,7 @@ class OSDriver(EshDriver, InstanceActionMixin):
         status = instance.extra['status']
         task = instance.extra['task']
         power = instance.extra['power']
-        if status in ['active','build','resize']:
+        if status in ['active','build','resize','error']:
             if task in ['deleting', 'suspending']:
                 result=False
             result=True
