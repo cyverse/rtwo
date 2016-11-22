@@ -271,16 +271,6 @@ class OSProvider(Provider):
 
         return self.options
 
-    def get_tenant_name(self):
-        tenant_name = self.options.get('ex_tenant_name')
-        if not tenant_name:
-            tenant_name = self.options.get('tenant_name')
-        if not tenant_name:
-            tenant_name = self.options.get('ex_project_name')
-        if not tenant_name:
-            tenant_name = self.options.get('project_name')
-        return tenant_name
-
     def get_driver(self, identity, **provider_credentials):
         """
         Get the libcloud driver using our service identity.
@@ -290,7 +280,6 @@ class OSProvider(Provider):
         self.identity = identity
         self.lc_driver = OpenStack_Esh_NodeDriver
         self.set_options(provider_credentials)
-        tenant_name = self.get_tenant_name()
         return self.lc_driver(key=self.options['key'],
                               secret=self.options['secret'],
                               secure=self.options['secure'] != 'False',
@@ -298,7 +287,8 @@ class OSProvider(Provider):
                               self.options['ex_force_auth_url'],
                               ex_force_auth_version=
                               self.options['ex_force_auth_version'],
-                              ex_tenant_name=tenant_name)
+                              ex_tenant_name=
+                              self.options['ex_tenant_name'])
 
 
 class OSValhallaProvider(OSProvider):
