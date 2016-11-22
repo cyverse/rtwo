@@ -181,7 +181,7 @@ class UserManager():
             raise Exception("Rule tuple did not match expected output:"
                             " (protocol, from_port, to_port, [CIDR])")
         if not self.find_rule(security_group, ip_protocol,
-                          from_port, to_port, cidr):
+                          from_port, to_port):
             try:
                 nova.security_group_rules.create(security_group.id,
                                                  ip_protocol=ip_protocol,
