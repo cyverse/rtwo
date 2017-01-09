@@ -1684,7 +1684,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
            quota_obj = server_resp.object
            return (server_resp.status == 200, quota_obj)
        except BaseHTTPError, e:
-           if 'Quota limit' in e.msg or 'must less' in e.msg:
+           if 'Quota limit' in e.msg or 'must be less' in e.msg or 'must less' in e.msg:
                return self.ex_update_quota(self, tenant_id, values)
        except Exception, e:
            logger.exception("Exception occured updating quota. Body:%s"
