@@ -259,7 +259,10 @@ class OSProvider(Provider):
         """
         self.options = {'secure': 'False',
                         'ex_force_auth_version': '2.0_password',
-                        'ex_force_auth_url': ''
+                        'ex_domain_name': None,
+                        'ex_force_auth_url': None,
+                        'ex_force_base_url': None,
+                        'ex_force_auth_token': None
                        }
         self.options.update(provider_credentials)
         self.options.update(self.identity.credentials)
@@ -280,15 +283,16 @@ class OSProvider(Provider):
         self.identity = identity
         self.lc_driver = OpenStack_Esh_NodeDriver
         self.set_options(provider_credentials)
-        return self.lc_driver(key=self.options['key'],
-                              secret=self.options['secret'],
-                              secure=self.options['secure'] != 'False',
-                              ex_force_auth_url=
-                              self.options['ex_force_auth_url'],
-                              ex_force_auth_version=
-                              self.options['ex_force_auth_version'],
-                              ex_tenant_name=
-                              self.options['ex_tenant_name'])
+        return self.lc_driver(
+            key=self.options['key'],
+            secret=self.options['secret'],
+            secure=self.options['secure'] != 'False',
+            ex_domain_name=self.options['ex_domain_name'],
+            ex_force_base_url=self.options['ex_force_base_url'],
+            ex_force_auth_url=self.options['ex_force_auth_url'],
+            ex_force_auth_version=self.options['ex_force_auth_version'],
+            ex_force_auth_token=self.options['ex_force_auth_token'],
+            ex_tenant_name=self.options['ex_tenant_name'])
 
 
 class OSValhallaProvider(OSProvider):
