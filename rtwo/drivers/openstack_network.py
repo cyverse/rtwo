@@ -37,9 +37,10 @@ class NetworkManager(object):
         """
         Allows us to make another connection (As the user)
         """
-        #HACK - Nova is certified-broken-on-v3. 
-        kwargs['version'] = 'v2.0'
-        kwargs['auth_url'] = kwargs['auth_url'].replace('v3','v2.0')
+        if hasattr(kwargs, 'auth_url'):
+            #HACK - Nova is certified-broken-on-v3. 
+            kwargs['version'] = 'v2.0'
+            kwargs['auth_url'] = kwargs.get('auth_url','').replace('v3','v2.0')
         neutron = _connect_to_neutron(*args, **kwargs)
         return neutron
 

@@ -57,11 +57,41 @@ def _connect_to_swift(*args, **kwargs):
 def _connect_to_neutron(*args, **kwargs):
     """
     """
-    if 'v2.0' not in kwargs['auth_url']:
+    if 'auth_url' in kwargs and 'v2.0' not in kwargs['auth_url']:
         kwargs['auth_url'] += "/v2.0"
     neutron = neutron_client.Client(*args, **kwargs)
     neutron.format = 'json'
     return neutron
+
+
+def _connect_to_keystone_v3(
+        auth_url, username, password,
+        project_name, domain_name="default"):
+    """
+    Given a username and password,
+    authenticate with keystone to get an unscoped token
+    Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
+    """
+    unscoped_auth = v3.Password(
+        username=username, password=password,
+        auth_url=auth_url, user_domain_name=domain_name,
+        unscoped=True)
+    unscoped_sess = Session(auth=unscoped_auth)
+    unscoped_token = unscoped_sess.get_token()
+    return _token_to_keystone_scoped_project(auth_url, unscoped_token, project_name, domain_name)
+
+def _token_to_keystone_scoped_project(
+        auth_url, token,
+        project_name, domain_name="default"):
+    """
+    Given an auth_url and scoped/unscoped token:
+    Create an auth,session and token for a specific project_name and domain_name (Required to access a serviceCatalog for neutron/nova/etc!)
+    """
+    auth = v3.Token(auth_url=auth_url, token=token, project_name=project_name, project_domain_id=domain_name)
+    sess = Session(auth=auth)
+    token = sess.get_token()
+    return (auth, sess, token)
+
 
 
 def _connect_to_keystone(*args, **kwargs):
