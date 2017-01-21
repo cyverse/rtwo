@@ -1,4 +1,4 @@
-requests==2.4.1
+requests>=2.4.1
 apache-libcloud==0.20.1
 threepio==0.2.0
 rfive==0.2.0
