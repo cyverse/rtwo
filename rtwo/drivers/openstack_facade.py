@@ -1385,7 +1385,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
 
         try:
-            network_manager = self.get_network_manager()
+            network_manager = self.get_network_manager(**kwargs)
             floating_ips = network_manager.list_floating_ips()
         except NeutronClientException as q_error:
             if q_error.status_code == 409:
@@ -1404,8 +1404,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def get_user_manager(self):
         return UserManager.lc_driver_init(self)
 
-    def get_network_manager(self):
-        return NetworkManager.lc_driver_init(self)
+    def get_network_manager(self,**kwargs):
+        return NetworkManager.lc_driver_init(self,**kwargs)
 
     def neutron_disassociate_ip(self, node, *args, **kwargs):
         """

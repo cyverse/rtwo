@@ -13,13 +13,16 @@ from novaclient.exceptions import NotFound as NovaNotFound
 from threepio import logger
 
 from rtwo.drivers.common import _connect_to_keystone,\
-    _connect_to_swift, _connect_to_nova, find
+    _connect_to_swift, _connect_to_nova, _get_os_userid_from_token, find
 
 
 class UserManager():
+    built_using_token=False
     keystone = None
+    swift=None
     nova = None
-    user = None
+    user = NoneA
+    user_id=None
     password = None
     project = None
 
@@ -37,25 +40,34 @@ class UserManager():
         return manager
 
     def __init__(self, *args, **kwargs):
+        self.built_using_token=False
         self.keystone, self.nova, self.swift = self.new_connection(*args, **kwargs)
-        auth_version = kwargs.get('version','v2.0')
-        if '2.0' in auth_version:
-            self.version = 2
-        elif '3' in auth_version:
-            self.version = 3
-        else:
-            raise Exception("Could not determine a version of openstack_user based on %s" % auth_version)
-
+        if not kwargs.has_key('ex_force_auth_token'): 
+            auth_version = kwargs.get('version','v2.0')
+            if '2.0' in auth_version:
+                self.version = 2
+            elif '3' in auth_version:
+                self.version = 3
+            else:
+                raise Exception("Could not determine a version of openstack_user based on %s" % auth_version)
 
     def new_connection(self, *args, **kwargs):
-        keystone = _connect_to_keystone(*args, **kwargs)
-        nova_args = kwargs.copy()
-        #HACK - Nova is certified-broken-on-v3. 
-        nova_args['version'] = 'v2.0'
-        nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
-        nova = _connect_to_nova(*args, **nova_args)
-        swift_args = self._get_swift_args(*args, **kwargs)
-        swift = _connect_to_swift(*args, **swift_args)
+        if kwargs.has_key('ex_force_auth_token'):
+            keystone = _connect_to_keystone(*args, **kwargs)
+            nova_args = kwargs.copy()
+            #HACK - Nova is certified-broken-on-v3. 
+            nova_args['version'] = 'v2.0'
+            nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
+            nova = _connect_to_nova(*args, **nova_args)
+            swift_args = self._get_swift_args(*args, **kwargs)
+            swift = _connect_to_swift(*args, **swift_args)
+        else:
+            self.built_using_token=True
+            self.keystone = keystone = _connect_to_keystone(*args, **kwargs)
+            nova_args = kwargs.copy()
+            self.nova = nova =  _connect_to_nova(*args, **nova_args)
+            swift_args = self._get_swift_args(*args, **kwargs)
+            self.swift = swift =  _connect_to_swift(*args, **swift_args)
         return keystone, nova, swift
 
     def _get_swift_args(self, *args, **kwargs):
@@ -70,20 +82,33 @@ class UserManager():
         return swift_args
 
 
-    def build_nova(self, username, password, project_name, *args, **kwargs):
+    def build_nova(self, username, password, project_name, token=None, *args, **kwargs):
         """
         Ocassionally you will need the 'user nova' instead of admin nova.
         This function will build a 'proper' nova given credentials.
         """
-        converted_kwargs = {
-            'username':username,
-            'password':password,
-            'tenant_name':project_name,
-            'auth_url':self.nova.client.auth_url,
-            'region_name':self.nova.client.region_name}
-        #TODO: Update w/ kwargs..
-        nova = _connect_to_nova(*args, **converted_kwargs)
-        nova.client.region_name = self.nova.client.region_name
+        if self.built_using_token==True:
+            #RBB at MOC we never have to rebuild nova after the UserManager is constructed
+            return self.nova
+        elif token:
+            nova_args=kwargs
+            nova_args[u'auth_url']=kwargs[u'ex_force_auth_url']
+            nova_args[u'endpoint_override']=kwargs[u'ex_force_base_url']
+            nova_args[u'auth_token']=kwargs[u'ex_force_auth_token']
+            nova = _connect_to_nova(*args,**nova_args)
+            nova.client.regoin_name=self.nova.client.region_name
+            self.nova=nova
+            self.built_using_token=True
+        else:
+            converted_kwargs = {
+                'username':username,
+                'password':password,
+                'tenant_name':project_name,
+                'auth_url':self.nova.client.auth_url,
+                'region_name':self.nova.client.region_name}
+            #TODO: Update w/ kwargs..
+            nova = _connect_to_nova(*args, **converted_kwargs)
+            nova.client.region_name = self.nova.client.region_name
         return nova
 
     def include_admin(self, projectname, admin_rolename='admin'):

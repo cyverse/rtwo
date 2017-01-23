@@ -283,6 +283,17 @@ class OSProvider(Provider):
         self.identity = identity
         self.lc_driver = OpenStack_Esh_NodeDriver
         self.set_options(provider_credentials)
+        if 'ex_force_auth_token' in self.options.keys() and 'ex_force_base_url' in self.options.keys():
+            return self.lc_driver(key=self.options['key'],
+                                  secret=self.options['secret'],
+                                  secure=self.options['secure'] != 'False',
+                                  ex_force_auth_token = self.options['ex_force_auth_token'],
+                                  ex_force_base_url = self.options['ex_force_base_url'],
+                                  ex_force_auth_url= self.options['ex_force_auth_url'],
+                                  ex_force_auth_version= self.options['ex_force_auth_version'],
+                                  ex_force_service_region=self.options['ex_force_service_region'],
+                                  ex_tenant_name= self.options['ex_tenant_name'],
+                                  ex_domain_name=self.options['ex_domain_name'])
         return self.lc_driver(
             key=self.options['key'],
             secret=self.options['secret'],
