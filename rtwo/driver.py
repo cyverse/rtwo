@@ -217,6 +217,16 @@ class EshDriver(LibcloudDriver, MetaMixin):
            and isinstance(identity, self.identityCls)):
             raise ServiceException('Wrong Provider or Identity')
 
+    def is_valid(self):
+        """
+        Performs validation on the driver -- for most drivers, this will mean you actually have to _call something_ on the API. if it succeeds, the driver is valid.
+        """
+        try:
+            self.list_sizes()
+            return True
+        except:
+            return False
+
     def list_all_volumes(self, *args, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node
