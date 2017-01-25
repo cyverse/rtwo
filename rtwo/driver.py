@@ -22,11 +22,11 @@ from rtwo.exceptions import MissingArgsException, ServiceException
 
 from rtwo.models.provider import AWSProvider
 from rtwo.models.provider import EucaProvider
-from rtwo.models.provider import OSProvider
+from rtwo.models.provider import OSProvider, MockProvider
 
 from rtwo.models.identity import AWSIdentity
 from rtwo.models.identity import EucaIdentity
-from rtwo.models.identity import OSIdentity
+from rtwo.models.identity import OSIdentity, MockIdentity
 
 from rtwo.mixins.driver import APIFilterMixin, MetaMixin,\
     InstanceActionMixin
@@ -334,6 +334,19 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def detach_volume(self, *args, **kwargs):
         return super(EshDriver, self).detach_volume(*args, **kwargs)
 
+
+class MockDriver(EshDriver, InstanceActionMixin):
+    """
+    """
+    providerCls = MockProvider
+    identityCls = MockIdentity
+
+    def is_valid(self):
+        return True
+
+    def __init__(self, provider, identity, **provider_credentials):
+        super(MockDriver, self).__init__(provider, identity, **provider_credentials)
+        #Set connection && force_service_region
 
 class OSDriver(EshDriver, InstanceActionMixin):
     """

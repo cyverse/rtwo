@@ -230,6 +230,33 @@ class EucaProvider(Provider):
                               path=self.options['path'])
 
 
+class MockProvider(Provider):
+    name = 'Mock'
+    location = 'MOCK'
+    def set_options(self, provider_credentials):
+        """
+        Get provider specific options.
+
+        Return provider specific options in a dict.
+        """
+        self.options = {'secure': 'False',
+                        'ex_force_auth_version': '2.0_password',
+                        'ex_domain_name': None,
+                        'ex_force_auth_url': None,
+                        'ex_force_base_url': None,
+                        'ex_force_auth_token': None
+                       }
+        return self.options
+
+    def get_driver(self, identity, **provider_credentials):
+        """
+        Get the libcloud driver using our service identity.
+
+        Return the libcloud.compute driver class.
+        """
+        self.set_options(provider_credentials)
+        return None
+
 class OSProvider(Provider):
 
     name = 'OpenStack'

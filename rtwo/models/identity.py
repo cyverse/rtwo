@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from threepio import logger
 
 from rtwo.exceptions import MissingArgsException
-from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
+from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider, MockProvider
 
 
 class BaseIdentity(object):
@@ -64,3 +64,7 @@ class EucaIdentity(Identity):
 class OSIdentity(Identity):
 
     provider = OSProvider
+
+class MockIdentity(Identity):
+
+    provider = MockProvider
