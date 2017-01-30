@@ -225,6 +225,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
             self.list_sizes()
             return True
         except:
+            logger.exception("Failed to retrieve valid driver:")
             return False
 
     def list_all_volumes(self, *args, **kwargs):
