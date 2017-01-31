@@ -14,6 +14,7 @@ import netaddr
 
 
 from threepio import logger
+import trackback
 
 from rtwo.drivers.common import _connect_to_neutron
 from neutronclient.common.exceptions import NeutronClientException, NotFound
@@ -38,8 +39,17 @@ class NetworkManager(object):
         Allows us to make another connection (As the user)
         """
         #HACK - Nova is certified-broken-on-v3. 
-        kwargs['version'] = 'v2.0'
-        kwargs['auth_url'] = kwargs['auth_url'].replace('v3','v2.0')
+        #RBB note: The MOC Nova is not broken on v3
+        #kwargs['version'] = 'v2.0'
+        #kwargs['auth_url'] = kwargs['auth_url'].replace('v3','v2.0')
+        #somewhere there is a filter that converted the kwargs
+        #as I don't have time to find it, I am just going to convert things back 
+        if kwargs.has_key(u'token') and not kwargs.has_key(u'ex_force_auth_token'):
+            kwargs[u'ex_force_auth_token']=kwargs[u'token']
+        if kwargs.has_key(u'tenant_name') and not kwargs.has_key(u'ex_tenant_name'):
+            kwargs[u'ex_tenant_name']=kwargs[u'tenant_name']
+        if kwargs.has_key(u'auth_url') and not kwargs.has_key(u'ex_force_auth_url'):
+            kwargs[u'ex_force_auth_url']=kwargs[u'auth_url']
         neutron = _connect_to_neutron(*args, **kwargs)
         return neutron
 
@@ -68,7 +78,7 @@ class NetworkManager(object):
         if not auth_info.get('auth_tenant_id'):
             self.list_networks()
             auth_info = self.neutron.httpclient.get_auth_info()
-        auth_info.pop('auth_token')
+        #auth_info.pop('auth_token')
         return auth_info
 
     ##Admin-specific methods##
@@ -113,13 +123,24 @@ class NetworkManager(object):
 
     def get_user_neutron(self, username, password,
                          project_name, auth_url, region_name):
-        user_creds = {
-            'username': username,
-            'password': password,
-            'tenant_name': project_name,
-            'auth_url': auth_url,
-            'region_name': region_name
-        }
+        if token:
+            user_creds = {
+                'username': username,
+                'password': password,
+                'tenant_name': project_name,
+                'auth_url': auth_url,
+                'region_name': region_name,
+                'project_domain_id': 'default',
+                'token': token
+            } 
+        else:
+            user_creds = {
+                'username': username,
+                'password': password,
+                'tenant_name': project_name,
+                'auth_url': auth_url,
+                'region_name': region_name
+            }
         user_neutron = self.new_connection(**user_creds)
         return user_neutron
 
@@ -242,13 +263,24 @@ class NetworkManager(object):
     ##Libcloud-Neutron Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, *args, **kwargs):
-        lc_driver_args = {
-            'username': lc_driver.key,
-            'password': lc_driver.secret,
-            'tenant_name': lc_driver._ex_tenant_name,
-            #Libcloud requires /v2.0/tokens -- OS clients do not.
-            'auth_url': lc_driver._ex_force_auth_url.replace('/tokens',''),
-            'region_name': lc_driver._ex_force_service_region}
+        if kwargs.has_key('ex_force_auth_token'):
+           lc_driver_args = { 
+                'username': lc_driver.key, 
+                'password': lc_driver.secret,
+                'auth_url': lc_driver._ex_force_auth_url.replace('/tokens',''),
+                'region_name': lc_driver._ex_force_service_region}
+            if hasattr(lc_driver,'_ex_force_auth_token'):
+                lc_driver_args['token']=lc_driver._ex_force_auth_token
+            if hasattr(lc_driver,'_ex_force_base_url'): 
+                lc_driver_args['endpoint_url']=lc_driver._ex_force_base_url
+        else:
+            lc_driver_args = {
+                'username': lc_driver.key,
+                'password': lc_driver.secret,
+                'tenant_name': lc_driver._ex_tenant_name,
+                #Libcloud requires /v2.0/tokens -- OS clients do not.
+                'auth_url': lc_driver._ex_force_auth_url.replace('/tokens',''),
+                'region_name': lc_driver._ex_force_service_region}
         lc_driver_args.update(kwargs)
         manager = NetworkManager(*args, **lc_driver_args)
         return manager

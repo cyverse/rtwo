@@ -213,9 +213,13 @@ class EshDriver(LibcloudDriver, MetaMixin):
 
     def __init__(self, provider, identity, **provider_credentials):
         super(EshDriver, self).__init__(provider, identity, **provider_credentials)
-        if not(isinstance(provider, self.providerCls)
-           and isinstance(identity, self.identityCls)):
-            raise ServiceException('Wrong Provider or Identity')
+        #if we are providing the auth_token, then this is the account we are loggin in using.
+        #This is to allow the an account to log in and provide lists of images and providers
+        #But do nothing for the account that has been authenticated against keystoe
+        if not provider_credentials.has_key("ex_force_auth_token"):
+            if not(isinstance(provider, self.providerCls)
+               and isinstance(identity, self.identityCls)):
+               raise ServiceException('Wrong Provider or Identity')
 
     def list_all_volumes(self, *args, **kwargs):
         """
