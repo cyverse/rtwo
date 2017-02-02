@@ -15,7 +15,7 @@ import netaddr
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_neutron
+from rtwo.drivers.common import _connect_to_neutron, _connect_to_keystone_v3
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 
 ROUTER_INTERFACE_NAMESPACE = (
@@ -37,11 +37,14 @@ class NetworkManager(object):
         """
         Allows us to make another connection (As the user)
         """
-        if hasattr(kwargs, 'auth_url'):
-            #HACK - Nova is certified-broken-on-v3. 
-            kwargs['version'] = 'v2.0'
-            kwargs['auth_url'] = kwargs.get('auth_url','').replace('v3','v2.0')
-        neutron = _connect_to_neutron(*args, **kwargs)
+        if 'session' not in kwargs:
+            if 'project_name' not in kwargs and 'tenant_name' in kwargs:
+                kwargs['project_name'] = kwargs['tenant_name']
+            (auth, session, token) = _connect_to_keystone_v3(**kwargs)
+            neutron = _connect_to_neutron(session=session)
+        else:
+            neutron = _connect_to_neutron(*args, **kwargs)
+
         return neutron
 
     def tenant_networks(self, tenant_id=None):
@@ -447,7 +450,7 @@ class NetworkManager(object):
             subnet['subnetpool_id'] = subnet_pool_id
         else:
             subnet['cidr'] = cidr
-        logger.debug(subnet)
+        logger.debug("Creating subnet - %s" % subnet)
         subnet_obj = neutron.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
 

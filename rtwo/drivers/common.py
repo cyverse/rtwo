@@ -57,8 +57,6 @@ def _connect_to_swift(*args, **kwargs):
 def _connect_to_neutron(*args, **kwargs):
     """
     """
-    if 'auth_url' in kwargs and 'v2.0' not in kwargs['auth_url']:
-        kwargs['auth_url'] += "/v2.0"
     neutron = neutron_client.Client(*args, **kwargs)
     neutron.format = 'json'
     return neutron
@@ -66,7 +64,7 @@ def _connect_to_neutron(*args, **kwargs):
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
-        project_name, domain_name="default"):
+        project_name, domain_name="default", **kwargs):
     """
     Given a username and password,
     authenticate with keystone to get an unscoped token
