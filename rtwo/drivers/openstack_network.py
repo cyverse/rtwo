@@ -432,7 +432,7 @@ class NetworkManager(object):
         return True
 
     def create_subnet(self, neutron, subnet_name,
-                      network_id, ip_version=4, cidr='172.16.1.0/24',
+                      network_id, ip_version=4, cidr=None,
                       dns_nameservers=[], subnet_pool_id=None):
         existing_subnets = self.find_subnet(subnet_name)
         if existing_subnets:
@@ -444,11 +444,12 @@ class NetworkManager(object):
             'network_id': network_id,
             'ip_version': ip_version,
         }
-        if not dns_nameservers and not subnet_pool:
-            subnet['dns_nameservers'] = ['8.8.8.8', '8.8.4.4']
-        if subnet_pool:
+        if subnet_pool_id:
             subnet['subnetpool_id'] = subnet_pool_id
         else:
+            if not dns_nameservers:
+                dns_nameservers = ['8.8.8.8', '8.8.4.4']
+            subnet['dns_nameservers'] = dns_nameservers
             subnet['cidr'] = cidr
         logger.debug("Creating subnet - %s" % subnet)
         subnet_obj = neutron.create_subnet({'subnet': subnet})
