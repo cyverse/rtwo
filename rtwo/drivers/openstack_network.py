@@ -37,6 +37,10 @@ class NetworkManager(object):
         """
         Allows us to make another connection (As the user)
         """
+        #NOTE: This is a HACK that should be removed when we stop supporting "Legacy Openstack"
+        if 'auth_url' in kwargs and '/v2' in kwargs['auth_url']:
+            return _connect_to_neutron(*args, **kwargs)
+
         if 'session' not in kwargs:
             if 'project_name' not in kwargs and 'tenant_name' in kwargs:
                 kwargs['project_name'] = kwargs['tenant_name']
