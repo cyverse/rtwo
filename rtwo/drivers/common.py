@@ -95,16 +95,12 @@ def _token_to_keystone_scoped_project(
 def _connect_to_keystone(*args, **kwargs):
     """
     """
-    try:
-        version = kwargs.get('version', 'v2.0')
-        if version == 'v2.0':
-            from keystoneclient.v2_0 import client as ks_client
-        else:
-            from keystoneclient.v3 import client as ks_client
-        keystone = ks_client.Client(*args, **kwargs)
-    except AuthorizationFailure as e:
-        raise Exception("Authorization Failure: Bad keystone secrets or "
-                        "firewall causing a timeout.")
+    version = kwargs.get('version', 'v2.0')
+    if version == 'v2.0':
+        from keystoneclient.v2_0 import client as ks_client
+    else:
+        from keystoneclient.v3 import client as ks_client
+    keystone = ks_client.Client(*args, **kwargs)
     return keystone
 
 
