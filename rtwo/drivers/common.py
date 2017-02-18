@@ -12,6 +12,7 @@ from novaclient import client as nova_client
 from novaclient import api_versions
 from neutronclient.v2_0 import client as neutron_client
 from openstack import connection as openstack_sdk
+from keystoneauth1 import identity
 from keystoneauth1.identity import v3
 from keystoneauth1.session import Session
 from libcloud.compute.deployment import ScriptDeployment
@@ -61,6 +62,21 @@ def _connect_to_neutron(*args, **kwargs):
     neutron.format = 'json'
     return neutron
 
+
+def _connect_to_keystone_v2(
+        auth_url, username, password,
+        project_name, **kwargs):
+    """
+    Given a username and password,
+    authenticate with keystone to get an unscoped token
+    Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
+    """
+    v2_auth = identity.Password(
+        auth_url=auth_url,
+        username=username, password=password, project_name=project_name)
+    v2_sess = Session(auth=v2_auth)
+    v2_token = v2_sess.get_token()
+    return (v2_auth, v2_sess, v2_token)
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
