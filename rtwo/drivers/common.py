@@ -62,6 +62,21 @@ def _connect_to_neutron(*args, **kwargs):
     neutron.format = 'json'
     return neutron
 
+def _connect_to_keystone_password(
+        auth_url, username, password,
+        project_name, user_domain_name=None, project_domain_name=None, **kwargs):
+    """
+    Given a username and password,
+    authenticate with keystone to get an unscoped token
+    Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
+    """
+    password_auth = identity.Password(
+        auth_url=auth_url,
+        username=username, password=password, project_name=project_name,
+        user_domain_name=user_domain_name, project_domain_name=project_domain_name)
+    password_sess = Session(auth=password_auth)
+    password_token = password_sess.get_token()
+    return (password_auth, password_sess, password_token)
 
 def _connect_to_keystone_v2(
         auth_url, username, password,
@@ -71,12 +86,7 @@ def _connect_to_keystone_v2(
     authenticate with keystone to get an unscoped token
     Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
     """
-    v2_auth = identity.Password(
-        auth_url=auth_url,
-        username=username, password=password, project_name=project_name)
-    v2_sess = Session(auth=v2_auth)
-    v2_token = v2_sess.get_token()
-    return (v2_auth, v2_sess, v2_token)
+    return _connect_to_keystone_password(auth_url, username, password, project_name, **kwargs)
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
@@ -86,13 +96,7 @@ def _connect_to_keystone_v3(
     authenticate with keystone to get an unscoped token
     Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
     """
-    unscoped_auth = v3.Password(
-        username=username, password=password,
-        auth_url=auth_url, user_domain_name=domain_name,
-        unscoped=True)
-    unscoped_sess = Session(auth=unscoped_auth)
-    unscoped_token = unscoped_sess.get_token()
-    return _token_to_keystone_scoped_project(auth_url, unscoped_token, project_name, domain_name)
+    return _connect_to_keystone_password(auth_url, username, password, project_name, domain_name, domain_name, **kwargs)
 
 def _token_to_keystone_scoped_project(
         auth_url, token,
