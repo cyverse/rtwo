@@ -90,7 +90,7 @@ def _connect_to_keystone_v2(
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
-        project_name, domain_name="default", **kwargs):
+        project_name, domain_name=None, **kwargs):
     """
     Given a username and password,
     authenticate with keystone to get an unscoped token
@@ -114,13 +114,18 @@ def _token_to_keystone_scoped_project(
 
 def _connect_to_keystone(*args, **kwargs):
     """
+    Deprecated: keystoneclient is going away after legacy clouds have been upgraded.
+    Use openstackclient instead.
     """
+    logger.warn("Deprecated: keystoneclient is going away after legacy clouds have been upgraded.")
     version = kwargs.get('version', 'v2.0')
     if version == 'v2.0':
+        (auth, session, token) = _connect_to_keystone_v2(**kwargs)
         from keystoneclient.v2_0 import client as ks_client
     else:
+        (auth, session ,token) = _connect_to_keystone_v3(**kwargs)
         from keystoneclient.v3 import client as ks_client
-    keystone = ks_client.Client(*args, **kwargs)
+    keystone = ks_client.Client(auth=auth, session=session)
     return keystone
 
 
@@ -157,10 +162,10 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
     NOTE: We use v1 because moving up to v2 results in a LOSS OF
     FUNCTIONALITY..
     """
-    glance_endpoint = keystone.service_catalog.url_for(
+    glance_endpoint = keystone.session.get_endpoint(
         service_type='image',
         endpoint_type='publicURL')
-    auth_token = keystone.service_catalog.get_token()
+    auth_token = keystone.session.get_token()
     if type(version) == str:
         if '3' in version:
             version = 2
@@ -168,7 +173,7 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
             version = 2
     glance = glanceclient.Client(version,
                                  endpoint=glance_endpoint,
-                                 token=auth_token['id'])
+                                 token=auth_token)
     return glance
 
 def _connect_to_keystoneauth(
