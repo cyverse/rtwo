@@ -123,9 +123,11 @@ def _connect_to_keystone(*args, **kwargs):
         (auth, session, token) = _connect_to_keystone_v2(**kwargs)
         from keystoneclient.v2_0 import client as ks_client
     else:
-        (auth, session ,token) = _connect_to_keystone_v3(**kwargs)
+        (auth, session, token) = _connect_to_keystone_v3(**kwargs)
         from keystoneclient.v3 import client as ks_client
     keystone = ks_client.Client(auth=auth, session=session)
+    if version == 'v2.0':
+        keystone._adapter.version = None
     return keystone
 
 
