@@ -12,8 +12,8 @@ from novaclient.exceptions import NotFound as NovaNotFound
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_keystone,\
-    _connect_to_swift, _connect_to_nova, find
+from rtwo.drivers.common import _connect_to_keystone_v3, _connect_to_keystone,\
+    _connect_to_nova, _connect_to_swift, _connect_to_nova_by_auth, find
 
 
 class UserManager():
@@ -48,12 +48,17 @@ class UserManager():
 
 
     def new_connection(self, *args, **kwargs):
-        keystone = _connect_to_keystone(*args, **kwargs)
-        nova_args = kwargs.copy()
-        #HACK - Nova is certified-broken-on-v3. 
-        nova_args['version'] = 'v2.0'
-        nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
-        nova = _connect_to_nova(*args, **nova_args)
+        if kwargs.get('version') == 'v3':
+            (auth, session, token) = _connect_to_keystone_v3(**kwargs)
+            keystone = _connect_to_keystone(auth=auth, session=session)
+            nova = _connect_to_nova_by_auth(auth=auth, session=session)
+        else:
+            #Legacy cloud method for connection (without keystoneauth1)
+            keystone = _connect_to_keystone(*args, **kwargs)
+            nova_args = kwargs.copy()
+            nova_args['version'] = 'v2.0'
+            nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
+            nova = _connect_to_nova(*args, **nova_args)
         swift_args = self._get_swift_args(*args, **kwargs)
         swift = _connect_to_swift(*args, **swift_args)
         return keystone, nova, swift
@@ -75,12 +80,20 @@ class UserManager():
         Ocassionally you will need the 'user nova' instead of admin nova.
         This function will build a 'proper' nova given credentials.
         """
+        try:
+            auth_url = self.nova.client.auth_url
+        except AttributeError:
+            auth_url = self.nova.client.session.auth.auth_url
+        region_name = self.nova.client.region_name
+        if not region_name:
+            region_name = self.credentials.get('region_name')
         converted_kwargs = {
-            'username':username,
-            'password':password,
-            'tenant_name':project_name,
-            'auth_url':self.nova.client.auth_url,
-            'region_name':self.nova.client.region_name}
+            'username': username,
+            'password': password,
+            'tenant_name': project_name,
+            'auth_url': auth_url,
+            'region_name': region_name,
+        }
         #TODO: Update w/ kwargs..
         nova = _connect_to_nova(*args, **converted_kwargs)
         nova.client.region_name = self.nova.client.region_name

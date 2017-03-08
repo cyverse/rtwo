@@ -12,6 +12,9 @@ from novaclient import client as nova_client
 from novaclient import api_versions
 from neutronclient.v2_0 import client as neutron_client
 from openstack import connection as openstack_sdk
+from keystoneauth1 import loading
+from keystoneauth1 import session
+from novaclient import client
 from keystoneauth1 import identity
 from keystoneauth1.identity import v3
 from keystoneauth1.session import Session
@@ -90,13 +93,18 @@ def _connect_to_keystone_v2(
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
-        project_name, domain_name=None, **kwargs):
+        project_name, **kwargs):
     """
     Given a username and password,
     authenticate with keystone to get an unscoped token
     Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
     """
-    return _connect_to_keystone_password(auth_url, username, password, project_name, domain_name, domain_name, **kwargs)
+    domain_name = kwargs.pop('domain_name', 'default')
+    project_domain_name = kwargs.pop('project_domain_name',
+                            kwargs.pop('project_domain_id', domain_name))
+    user_domain_name = kwargs.pop('user_domain_name',
+                            kwargs.pop('user_domain_id', domain_name))
+    return _connect_to_keystone_password(auth_url, username, password, project_name, user_domain_name, project_domain_name, **kwargs)
 
 def _token_to_keystone_scoped_project(
         auth_url, token,
@@ -120,12 +128,17 @@ def _connect_to_keystone(*args, **kwargs):
     logger.warn("Deprecated: keystoneclient is going away after legacy clouds have been upgraded.")
     version = kwargs.get('version', 'v2.0')
     if version == 'v2.0':
-        (auth, session, token) = _connect_to_keystone_v2(**kwargs)
         from keystoneclient.v2_0 import client as ks_client
     else:
-        (auth, session, token) = _connect_to_keystone_v3(**kwargs)
         from keystoneclient.v3 import client as ks_client
-    keystone = ks_client.Client(auth=auth, session=session)
+    if 'auth' in kwargs and 'session' in kwargs:
+        (auth, sess) = (kwargs['auth'], kwargs['session'])
+    else:
+        if version == 'v2.0':
+            (auth, sess, token) = _connect_to_keystone_v2(**kwargs)
+        else:
+            (auth, sess, token) = _connect_to_keystone_v3(**kwargs)
+    keystone = ks_client.Client(auth=auth, session=sess)
     if version == 'v2.0':
         keystone._adapter.version = None
     return keystone
@@ -158,6 +171,15 @@ def _connect_to_openstack_sdk(*args, **kwargs):
         **kwargs
     )
     return stack_sdk
+
+def _connect_to_glance_by_auth(*args, **kwargs):
+    """
+    Use this for new Openstack Clouds
+    """
+    version = '2'
+    glance = glanceclient.Client(version,
+                                 **kwargs)
+    return glance
 
 def _connect_to_glance(keystone, version='1', *args, **kwargs):
     """
@@ -219,6 +241,17 @@ def _connect_to_nova(*args, **kwargs):
                               region_name=region_name,
                               #extensions = self.extensions,
                               *args, no_cache=True, **kwargs)
+    return nova
+
+
+def _connect_to_nova_by_auth(*args, **kwargs):
+    VERSION = kwargs.get('version', 2)
+    if 'session' not in kwargs:
+        (auth, sess, token) = _connect_to_keystone_v3(
+            *args, **kwargs)
+    else:
+        sess = kwargs['session']
+    nova = client.Client(VERSION, session=sess)
     return nova
 
 
