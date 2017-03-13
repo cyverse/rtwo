@@ -50,7 +50,7 @@ class UserManager():
     def new_connection(self, *args, **kwargs):
         if kwargs.get('version') == 'v3':
             (auth, session, token) = _connect_to_keystone_v3(**kwargs)
-            keystone = _connect_to_keystone(auth=auth, session=session)
+            keystone = _connect_to_keystone(version="v3", auth=auth, session=session)
             nova = _connect_to_nova_by_auth(auth=auth, session=session)
         else:
             #Legacy cloud method for connection (without keystoneauth1)
