@@ -86,13 +86,14 @@ class UserManager():
             auth_url = self.nova.client.session.auth.auth_url
         region_name = self.nova.client.region_name
         if not region_name:
-            region_name = self.credentials.get('region_name')
+            region_name = kwargs.get('region_name')
         converted_kwargs = {
             'username': username,
             'password': password,
             'tenant_name': project_name,
             'auth_url': auth_url,
             'region_name': region_name,
+            'version': self.version,
         }
         #TODO: Update w/ kwargs..
         nova = _connect_to_nova(*args, **converted_kwargs)

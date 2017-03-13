@@ -200,19 +200,6 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
                                  token=auth_token)
     return glance
 
-def _connect_to_keystoneauth(
-            auth_url, username, password,
-            user_domain_id, project_domain_id):
-    """
-    Connect to keystoneauth (Password) - The v3 way
-    ..Because obviously.. So simple.
-    """
-    keystone_auth = v3.Password(
-        auth_url, username=username,
-        password=password, user_domain_id=user_domain_id,
-        project_domain_id=project_domain_id)
-    return keystone_auth
-
 def _connect_to_nova(*args, **kwargs):
     kwargs = copy.deepcopy(kwargs)
     version = kwargs.pop('version', '2')
@@ -227,11 +214,13 @@ def _connect_to_nova(*args, **kwargs):
     user_domain_id = kwargs.pop('user_domain_id','default')
     endpoint_type = kwargs.pop('endpoint_type','publicURL')
     service_type = kwargs.pop('service_type','compute')
+    if version == 3:
+        (password_auth, sess, token) = _connect_to_keystone_password(
+            auth_url, username, password, tenant_name,
+            user_domain_id, project_domain_id)
+        return _connect_to_nova_by_auth(auth=password_auth, session=sess)
+    # Legacy cloud path:
     version = api_versions.APIVersion("2.0")
-    password_auth = _connect_to_keystoneauth(
-        auth_url, username, password,
-        user_domain_id, project_domain_id)
-    #kwargs['auth'] = password_auth
     kwargs['http_log_debug'] = True
     nova = nova_client.Client(version,
                               username,
