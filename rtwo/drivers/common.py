@@ -5,6 +5,7 @@ import copy
 import sys
 
 import glanceclient
+import keystoneclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
 from swiftclient import client as swift_client
@@ -81,15 +82,17 @@ def _connect_to_keystone_password(
     password_token = password_sess.get_token()
     return (password_auth, password_sess, password_token)
 
-def _connect_to_keystone_v2(
-        auth_url, username, password,
-        project_name, **kwargs):
+def _connect_to_keystone_v2(**kwargs):
     """
+    DEPRECATION WARNING: Should only be used by legacy clouds
     Given a username and password,
     authenticate with keystone to get an unscoped token
     Exchange token to receive an auth,session,token scoped to a specific project_name and domain_name.
     """
-    return _connect_to_keystone_password(auth_url, username, password, project_name, **kwargs)
+    # return _connect_to_keystone_password(auth_url, username, password, project_name, **kwargs)
+    from keystoneclient.v2_0 import client as ks_client
+    keystone = ks_client.Client(**kwargs)
+    return keystone
 
 def _connect_to_keystone_v3(
         auth_url, username, password,
@@ -125,19 +128,17 @@ def _connect_to_keystone(*args, **kwargs):
     Deprecated: keystoneclient is going away after legacy clouds have been upgraded.
     Use openstackclient instead.
     """
-    logger.warn("Deprecated: keystoneclient is going away after legacy clouds have been upgraded.")
+    logger.warn("Deprecated: keystoneclient is going away after legacy clouds have been upgraded -- convert to openstack-client/sdk")
     version = kwargs.get('version', 'v2.0')
     if version == 'v2.0':
         from keystoneclient.v2_0 import client as ks_client
-    else:
-        from keystoneclient.v3 import client as ks_client
+        keystone = _connect_to_keystone_v2(**kwargs)
+        return keystone
+    from keystoneclient.v3 import client as ks_client
     if 'auth' in kwargs and 'session' in kwargs:
         (auth, sess) = (kwargs['auth'], kwargs['session'])
     else:
-        if version == 'v2.0':
-            (auth, sess, token) = _connect_to_keystone_v2(**kwargs)
-        else:
-            (auth, sess, token) = _connect_to_keystone_v3(**kwargs)
+        (auth, sess, token) = _connect_to_keystone_v3(**kwargs)
     keystone = ks_client.Client(auth=auth, session=sess)
     if version == 'v2.0':
         keystone._adapter.version = None
@@ -181,14 +182,19 @@ def _connect_to_glance_by_auth(*args, **kwargs):
                                  **kwargs)
     return glance
 
-def _connect_to_glance(keystone, version='1', *args, **kwargs):
+def _connect_to_glance(keystone, version='2', *args, **kwargs):
     """
     NOTE: We use v1 because moving up to v2 results in a LOSS OF
     FUNCTIONALITY..
     """
-    glance_endpoint = keystone.session.get_endpoint(
-        service_type='image',
-        endpoint_type='publicURL')
+    if type(keystone) == keystoneclient.v2_0.client.Client:
+        glance_service = keystone.services.find(type='image')
+        glance_endpoint_obj = keystone.endpoints.find(service_id=glance_service.id)
+        glance_endpoint = glance_endpoint_obj.publicurl
+    else:
+        glance_endpoint = keystone.session.get_endpoint(
+            service_type='image',
+            endpoint_type='publicURL')
     auth_token = keystone.session.get_token()
     if type(version) == str:
         if '3' in version:
