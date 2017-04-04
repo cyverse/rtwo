@@ -1641,7 +1641,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             % body)
            return (False, None)
 
-    def ex_update_quota(self, tenant_id, values):
+    def ex_update_quota(self, tenant_id, values, use_tenant_id=True):
        """
        Updates value/values in quota set
        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
@@ -1649,7 +1649,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
        @keyword values: A Dict containing the new key/value for quota set
        @type    values: C{dict}
        """
-       values['tenant_id'] = tenant_id
+       if use_tenant_id:
+           values['tenant_id'] = tenant_id
        body = {'quota_set': values}
        server_resp = self.connection.request('/os-quota-sets/%s'
                                              % (tenant_id,),
@@ -1664,7 +1665,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
            return (False, None)
 
 
-    def ex_update_quota_for_user(self, tenant_id, user_id, values):
+    def ex_update_quota_for_user(self, tenant_id, user_id, values, use_tenant_id=True):
        """
        Updates value/values in quota set
        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
@@ -1674,7 +1675,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
        @keyword values: A Dict containing the new key/value for quota set
        @type    values: C{dict}
        """
-       values['tenant_id'] = tenant_id
+       if use_tenant_id:
+           values['tenant_id'] = tenant_id
        body = {'quota_set': values}
        server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
                                              % (tenant_id, user_id),
