@@ -163,6 +163,9 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
                      self.identity.credentials['key']))
         return self._connection.list_images()
 
+    def _get_size(self, alias):
+        return self._connection.ex_get_size(alias)
+
     def list_sizes(self, *args, **kwargs):
         logger.debug("Call made to list_sizes: %s - %s"
                      % (self.provider.identifier,

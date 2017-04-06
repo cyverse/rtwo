@@ -22,8 +22,13 @@ class APIFilterMixin():
         except IndexError:
             return None
 
-    def get_size(self, alias):
+    def _get_size(self, alias):
+        raise NotImplementedError("Use 'get_size' to lookup via list_sizes method instead.")
+
+    def get_size(self, alias, forced_lookup=False):
         try:
+            if forced_lookup:
+                return self._get_size(alias)
             size_list = self.list_sizes()
             size = filter(lambda size:
                           alias == size.id, size_list)[0]
