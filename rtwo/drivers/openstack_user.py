@@ -12,8 +12,8 @@ from novaclient.exceptions import NotFound as NovaNotFound
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_keystone_v3, _connect_to_keystone,\
-    _connect_to_nova, _connect_to_swift, _connect_to_nova_by_auth, find
+from rtwo.drivers.common import  _connect_to_keystone_auth_v3, _connect_to_keystone_v3,\
+    _connect_to_keystone, _connect_to_nova, _connect_to_swift, _connect_to_nova_by_auth, find
 
 
 class UserManager():
@@ -49,7 +49,10 @@ class UserManager():
 
     def new_connection(self, *args, **kwargs):
         if kwargs.get('version') == 'v3':
-            (auth, session, token) = _connect_to_keystone_v3(**kwargs)
+            if 'auth_token' in kwargs:
+                (auth, session, token) = _connect_to_keystone_auth_v3(**kwargs)
+            else:
+                (auth, session, token) = _connect_to_keystone_v3(**kwargs)
             keystone = _connect_to_keystone(version="v3", auth=auth, session=session)
             nova = _connect_to_nova_by_auth(auth=auth, session=session)
         else:
