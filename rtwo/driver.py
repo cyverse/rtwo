@@ -243,7 +243,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         Return the InstanceClass representation of a libcloud node
         """
         return self.provider.instanceCls.get_instances(
-            self._connection.ex_list_all_instances(), self.provider)
+            self._connection.ex_list_all_instances(), self)
 
     def get_instance(self, instance_id, *args, **kwargs):
         """
@@ -260,7 +260,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         Return the InstanceClass representation of a libcloud node
         """
         return self.provider.instanceCls.get_instances(
-            super(EshDriver, self).list_instances(), self.provider)
+            super(EshDriver, self).list_instances(), self)
 
     def list_machines(self, *args, **kwargs):
         """

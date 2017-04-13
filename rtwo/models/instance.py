@@ -19,12 +19,12 @@ class Instance(object):
             "This field is deprecated. Use 'source' instead")
     size = None
 
-    def _get_source_for_instance(self, node):
+    def _get_source_for_instance(self, node, driver):
         """
         Retrieve correct source based on instance details
         NOTE: Occasionally more data may be required/things may slow down here.
         """
-        source = self._get_source_volume(node)
+        source = self._get_source_volume(node, driver)
         if source:
             return source
         source = self._get_source_snapshot(node)
@@ -41,21 +41,20 @@ class Instance(object):
         return None
 
 
-    def __init__(self, node, provider):
-
+    def __init__(self, node, driver):
         self.owner = None # Should be defined per-provider
         self._node = node
         self.id = node.id
         self.alias = node.id
         self.name = node.name
         self.extra = node.extra
-        self.provider = provider
+        self.provider = driver.provider
         self.ip = self.get_public_ip()
-        self.source = self._get_source_for_instance(node)
+        self.source = self._get_source_for_instance(node, driver)
 
     @classmethod
-    def get_instances(cls, nodes, provider):
-        return [cls.provider.instanceCls(node, provider) for node in nodes]
+    def get_instances(cls, nodes, driver):
+        return [cls.provider.instanceCls(node, driver) for node in nodes]
 
     def get_public_ip(self):
         raise NotImplementedError()
@@ -161,50 +160,51 @@ class OSInstance(Instance):
         if not self.size:
             self.size = self._get_flavor_for_instance(node)
 
-    def _check_for_volumes(self, node):
-        booted_volume = node.extra['object'].get('os-extended-volumes:volumes_attached')
-        if type(booted_volume) == list and booted_volume:
-            return booted_volume[0].get('id')
-        elif booted_volume:
-            #As-of-now this is an impossible situation (Always a list)
-            # but in case things change, this is an easy fallback..
-            return booted_volume.get('id')
-        return None
 
-    def _get_source_volume(self, node):
+    def _get_source_volume(self, node, driver):
         """
         Returns None or OSVolume
         """
-        #SAFETY check until we can lessen the impact on calls
-        if 'bootable_volume' not in node.extra['metadata']:
+        # Do not check for volume-as-source if no volume is attached.
+        attachments = node.extra.get('attachments',{})
+        if not attachments:
+            attachments = node.extra.get('os-extended-volumes:volumes_attached', {})
+        if not attachments:
+            attachments = node.extra.get('volumes_attached')
+        if not attachments:
             return None
-        volume_id = self._check_for_volumes(node)
-        if not volume_id:
-            return None
-        volume = self._test_node_is_booted_volume(node, volume_id)
+        volume = self._test_node_is_booted_volume(driver, node, attachments)
         if not volume:
             return None
         source = OSVolume(volume)
+        source._volume = None  # FIXME: This is done to avoid un-pickleable errors. A refactor of rtwo should _REMOVE_ the idea of '.source' and these complex/compound objects.
         return source
 
-    def _test_node_is_booted_volume(self, node, volume_id):
+    def _test_node_is_booted_volume(self, driver, node, attachments=[]):
         """
         Given a node and a volume_id, return 'volume' if the node
         is 'running' the volume, otherwise return None 
         """
-        volume = node.driver.ex_get_volume(volume_id)
-        if not volume:
-            logger.warn("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
-                        " return a volume" % volume_id)
-            return None
-        attachment_data = volume.extra['attachments'][0]
-        if not attachment_data:
-            logger.warn("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
-                        " return attachment data." % volume_id)
-            return None
-        device = attachment_data.get("device")
-        if device and 'vda' in device:
-            return volume
+        instance_id = node.id
+        if not attachments:
+            attachments = node.extra['object'].get('os-extended-volumes:volumes_attached')
+        for volume in attachments:
+            volume_id = volume.get('id')
+            volume = driver._connection.ex_get_volume(volume_id)
+            if not volume:
+                logger.info("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
+                            " return a volume" % volume_id)
+                continue
+            volume_attachment_data = volume.extra['attachments']
+            if not volume_attachment_data:
+                logger.info("[BADDATA] Volume %s listed in 'attached_volumes' but did not"
+                            " return attachment data." % volume_id)
+                continue
+            for attach_data in volume_attachment_data:
+                if attach_data['serverId'] == instance_id:
+                    device = attach_data.get("device")
+                    if device and 'vda' in device:
+                        return volume
         #Normal behavior, this is NOT a booted volume.
         logger.debug("Volume %s listed in 'attached_volumes' but is NOT "
                      "currently running as an instance." % volume_id)
