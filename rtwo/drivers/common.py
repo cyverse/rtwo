@@ -82,6 +82,22 @@ def _connect_to_keystone_password(
     password_token = password_sess.get_token()
     return (password_auth, password_sess, password_token)
 
+def _connect_to_keystone_auth_v3(
+        auth_url, auth_token, project_name, domain_name, **kwargs):
+    """
+    Give a auth_url and auth_token,
+    authenticate with keystone version 3 to get a scoped_token,
+    Exchange token to receive an auth, session, token scoped to a sepcific project_name and domain_name.
+    """
+    token_auth = identity.Token(
+        auth_url=auth_url,
+        token=auth_token,
+        project_domain_id=domain_name,
+        project_name=project_name)
+    token_sess = Session(auth=token_auth)
+    token_token = token_sess.get_token()
+    return (token_auth, token_sess, token_token)
+
 def _connect_to_keystone_v2(**kwargs):
     """
     DEPRECATION WARNING: Should only be used by legacy clouds
