@@ -86,7 +86,7 @@ class Meta(BaseMeta):
     def all_instances(self):
         return self.provider.instanceCls.get_instances(
             self.admin_driver._connection.ex_list_all_instances(),
-            self.provider)
+            self)
 
     def reset(self):
         Meta.reset()
@@ -448,7 +448,7 @@ class OSMeta(Meta):
     def all_instances(self, **kwargs):
         return self.provider.instanceCls.get_instances(
             self.admin_driver._connection.ex_list_all_instances(**kwargs),
-            self.provider)
+            self)
 
     def all_volumes(self):
         return self.provider.instanceCls.get_volumes(

@@ -289,12 +289,12 @@ class EshDriver(LibcloudDriver, MetaMixin):
         logger.debug(str(kwargs))
         return self.provider.instanceCls(
             super(EshDriver, self).create_instance(*args, **kwargs),
-            self.provider)
+            self)
 
     def deploy_instance(self, *args, **kwargs):
         return self.provider.instanceCls(
             super(EshDriver, self).deploy_instance(*args, **kwargs),
-            self.provider)
+            self)
 
     def reset_network(self, *args, **kwargs):
         return super(EshDriver, self).reset_network(*args, **kwargs)
@@ -320,7 +320,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def boot_volume(self, *args, **kwargs):
         return self.provider.instanceCls(
                 super(EshDriver, self).boot_volume(*args, **kwargs),
-                self.provider)
+                self)
 
     def list_volumes(self, *args, **kwargs):
         return self.provider.volumeCls.get_volumes(

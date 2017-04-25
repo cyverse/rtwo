@@ -151,9 +151,10 @@ class OSInstance(Instance):
 
     provider = OSProvider
 
-    def __init__(self, node, provider):
-        Instance.__init__(self, node, provider)
+    def __init__(self, node, driver):
+        Instance.__init__(self, node, driver)
 
+        provider = driver.provider
         #Unfortunately we can't get the tenant_name..
         self.owner = node.extra.get('tenantId')
         #New in 0.2.11 - use MockSize and expect user to lookup size.id if they want more than a MockSize!
