@@ -65,11 +65,11 @@ def _connect_to_swift(*args, **kwargs):
 
 def _connect_to_sahara(*args, **kwargs):
     """
-    Recommand authenticating sahara with session auth
+    Recommend authenticating sahara with session auth
     """
     if "session" is kwargs:
         session = kwargs.get("session")
-        sahara = sahara_client.Client("1.1", session=sess, endpoint_type="internalURL")
+        sahara = sahara_client.Client("1.1", session=session, endpoint_type="internalURL")
     else:
         sahara = sahara_client.Client(*args, **kwargs)
     return sahara
