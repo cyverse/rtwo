@@ -379,7 +379,7 @@ class UserManager():
         }
         if project:
             if self.keystone_version() == 3:
-                account_data['project'] = project.name
+                account_data['project'] = project.id
                 account_data['domain'] = domain
             elif self.keystone_version() == 2:
                 account_data['tenant_id'] = project.id
