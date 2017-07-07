@@ -15,7 +15,7 @@ import netaddr
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_sahara _connect_to_neutron, _connect_to_keystone_v3
+from rtwo.drivers.common import _connect_to_sahara, _connect_to_neutron, _connect_to_keystone_v3
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 
 ROUTER_INTERFACE_NAMESPACE = (
