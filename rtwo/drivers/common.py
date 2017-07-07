@@ -8,6 +8,7 @@ import glanceclient
 import keystoneclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
+from saharaclient import client as sahara_client
 from swiftclient import client as swift_client
 from novaclient import client as nova_client
 from novaclient import api_versions
@@ -55,9 +56,28 @@ class LoggedScriptDeployment(ScriptDeployment):
 def _connect_to_swift(*args, **kwargs):
     """
     """
-    swift = swift_client.Connection(*args, **kwargs)
+    if "session" in kwargs:
+        session = kwargs.get("session")
+        swift = swift_client.Connection(session=session)
+    else:
+        swift = swift_client.Connection(*args, **kwargs)
     return swift
 
+def _connect_to_sahara(*args, **kwargs):
+    """
+    Recommend authenticating sahara with session auth
+    """
+    try:
+        if "session" in kwargs:
+            session = kwargs.get("session")
+            sahara = sahara_client.Client("1.1", session=session, endpoint_type="internalURL")
+        else:
+            sahara = sahara_client.Client(*args, **kwargs)
+    except RuntimeError as client_failure:
+        if "Could not find Sahara endpoint" in client_failure.message:
+            return None
+        raise
+    return sahara
 
 def _connect_to_neutron(*args, **kwargs):
     """
