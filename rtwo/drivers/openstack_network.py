@@ -39,9 +39,9 @@ class NetworkManager(object):
         """
         #NOTE: This is a HACK that should be removed when we stop supporting "Legacy Openstack"
         if 'auth_url' in kwargs and '/v2' in kwargs['auth_url']:
-            return _connect_to_neutron(*args, **kwargs)
-
-        if 'session' not in kwargs:
+            neutron = _connect_to_neutron(*args, **kwargs)
+            sahara = None
+        elif 'session' not in kwargs:
             if 'project_name' not in kwargs and 'tenant_name' in kwargs:
                 kwargs['project_name'] = kwargs['tenant_name']
             (auth, session, token) = _connect_to_keystone_v3(**kwargs)

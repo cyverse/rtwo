@@ -67,11 +67,16 @@ def _connect_to_sahara(*args, **kwargs):
     """
     Recommend authenticating sahara with session auth
     """
-    if "session" is kwargs:
-        session = kwargs.get("session")
-        sahara = sahara_client.Client("1.1", session=session, endpoint_type="internalURL")
-    else:
-        sahara = sahara_client.Client(*args, **kwargs)
+    try:
+        if "session" in kwargs:
+            session = kwargs.get("session")
+            sahara = sahara_client.Client("1.1", session=session, endpoint_type="internalURL")
+        else:
+            sahara = sahara_client.Client(*args, **kwargs)
+    except RuntimeError as client_failure:
+        if "Could not find Sahara endpoint" in client_failure.message:
+            return None
+        raise
     return sahara
 
 def _connect_to_neutron(*args, **kwargs):

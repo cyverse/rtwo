@@ -12,9 +12,13 @@ from novaclient.exceptions import NotFound as NovaNotFound
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_glance_by_auth, _connect_to_keystone_auth_v3, \
-    _connect_to_keystone_v3, _connect_to_keystone, _connect_to_nova, _connect_to_swift, \
-    _connect_to_nova_by_auth, find
+from rtwo.drivers.common import (
+    _connect_to_nova_by_auth, _connect_to_glance_by_auth,
+    _connect_to_keystone_auth_v3, _connect_to_keystone_v3,
+    _connect_to_glance, _connect_to_keystone,
+    _connect_to_nova, _connect_to_swift,
+    find)
+
 
 class UserManager():
     keystone = None
@@ -54,17 +58,17 @@ class UserManager():
             else:
                 (auth, session, token) = _connect_to_keystone_v3(**kwargs)
             keystone = _connect_to_keystone(version="v3", auth=auth, session=session)
-            nova = _connect_to_nova_by_auth(auth=auth, session=session)
             glance = _connect_to_glance_by_auth(auth=auth, session=session)
+            nova = _connect_to_nova_by_auth(auth=auth, session=session)
             swift = _connect_to_swift(session=session)
         else:
             #Legacy cloud method for connection (without keystoneauth1)
             keystone = _connect_to_keystone(*args, **kwargs)
+            glance = _connect_to_glance(keystone, **kwargs)
             nova_args = kwargs.copy()
             nova_args['version'] = 'v2.0'
             nova_args['auth_url'] = nova_args['auth_url'].replace('v3','v2.0')
             nova = _connect_to_nova(*args, **nova_args)
-            glance = _connect_to_glance_by_auth(*args, **kwargs)
             swift_args = self._get_swift_args(*args, **kwargs)
             swift = _connect_to_swift(*args, **swift_args)
         return keystone, nova, swift, glance
