@@ -207,8 +207,8 @@ class OSInstance(Instance):
                     if device and 'vda' in device:
                         return volume
         #Normal behavior, this is NOT a booted volume.
-        logger.debug("Volume %s listed in 'attached_volumes' but is NOT "
-                     "currently running as an instance." % volume_id)
+        # logger.debug("Volume %s listed in 'attached_volumes' but is NOT "
+        #              "currently running as an instance." % volume_id)
         return None
 
     def _get_source_image(self, node):

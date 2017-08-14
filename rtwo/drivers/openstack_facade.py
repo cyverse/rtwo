@@ -280,7 +280,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return networks
 
     def _to_nodes(self, el):
-        return [self._to_node(api_node) for api_node in el['servers']]
+        if 'servers' in el:
+            servers = el['servers']
+        else:
+            servers = el
+        return [self._to_node(api_node) for api_node in servers]
 
     def _to_node(self, api_node, floating_ips=[]):
         """
@@ -927,13 +931,43 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         # Made by a user with a single tenant will produce *IDENTICAL* results to that same call made by admin.
         # THIS IS CONSIDERED HARMFUL! So we have blocked all users except the admin accounts from making this call.
         if self.key not in ['atmoadmin','admin']:
-            all_tenants = ""
+            query_params = ""
         else:
-            all_tenants = "?all_tenants=1"
+            query_params = "?all_tenants=1"
         server_resp = self.connection.request(
-            '/servers/detail%s' % all_tenants,
+            '/servers/detail%s' % query_params,
             method='GET')
-        return self._to_nodes(server_resp.object)
+        all_instances = []
+        next_page = False
+        # Walk through any pagination links
+        while True:
+            last_response = server_resp.object
+            if type(last_response) != dict or 'servers' not in last_response:
+                raise Exception("The response output for nova has changed (Missing 'servers') -- Ask a developer to update this line of code!")
+            all_instances.extend(last_response['servers'])
+            page_links = last_response.get('servers_links',[])
+            if not page_links:
+                break
+            next_page = False
+            for link in page_links:
+                if next_page:  # we have the right link, skip all others.
+                    continue
+                if type(link) != dict or 'rel' not in link or 'href' not in link:  # Link is invalid.
+                    raise Exception("The pagination (servers_links) response for nova has changed -- Ask a developer to update this line of code!")
+                link_type = link.get('rel')
+                # Ignore any links that don't point to next page
+                if link_type != 'next':
+                    continue
+                full_servers_url = link.get('href')
+                query_params = "?" + full_servers_url.partition('?')[2] # apply query params and make the next request.
+                next_page = True
+            server_resp = self.connection.request(
+                '/servers/detail%s' % query_params,
+                method='GET')
+            if not next_page:
+                break
+        # Return a completed list of instances from the API, in the original format.
+        return self._to_nodes({'servers': all_instances})
 
     @swap_service_catalog(service_type="network", name="neutron")
     def _neutron_delete_quota(self, tenant_id):
