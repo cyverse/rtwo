@@ -1,0 +1,8 @@
+dist: trusty
+deploy:
+  provider: pypi
+  user: atmosphere
+  password:
+    secure: RpKQdpwtHPtS2NBE1J/VkwA98I1GPWCXAbsviScYuaDvqDmGsbMRvo4yp4/luza3iSJJVw+HR+GjmN2S0F++k9nHRLoBGjyLs0FWSUw0P0wsVq2A9+hpgLbxygBoLD5Q7RhxqVHoIabmalgIN7qBUU4wMG/PULRNGGxKkorghdU=
+  on:
+    tags: true
