@@ -7,13 +7,14 @@ Built on top of Apache libcloud with support for modern OpenStack. Also supports
 
 # Install #
 
+```bash
 pip install rtwo
-
+```
 
 ## Or from source ##
 
 ```bash
-pip install -e git://github.com/iPlantCollaborativeOpenSource/rtwo#egg=rtwo
+pip install -e git://github.com/cyverse/rtwo#egg=rtwo
 ```
 
 # Use #
