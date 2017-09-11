@@ -8,6 +8,7 @@ import glanceclient
 import keystoneclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
+from heatclient import client as heat_client
 from saharaclient import client as sahara_client
 from swiftclient import client as swift_client
 from novaclient import client as nova_client
@@ -78,6 +79,22 @@ def _connect_to_sahara(*args, **kwargs):
             return None
         raise
     return sahara
+
+def _connect_to_heat(*args, **kwargs):
+    """
+    Recommend authenticating heat with session auth
+    """
+    try:
+        if "session" in kwargs:
+            session = kwargs.get("session")
+            heat = heat_client.Client("1", session=session)
+        else:
+            heat = heat_client.Client(*args, **kwargs)
+    except RuntimeError as client_failure:
+        if "Could not find Heat endpoint" in client_failure.message:
+            return None
+        raise
+    return heat
 
 def _connect_to_neutron(*args, **kwargs):
     """
