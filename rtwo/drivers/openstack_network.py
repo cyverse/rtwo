@@ -15,7 +15,7 @@ import netaddr
 
 from threepio import logger
 
-from rtwo.drivers.common import _connect_to_sahara, _connect_to_neutron, _connect_to_keystone_v3
+from rtwo.drivers.common import _connect_to_heat, _connect_to_sahara, _connect_to_neutron, _connect_to_keystone_v3
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 
 ROUTER_INTERFACE_NAMESPACE = (
@@ -31,7 +31,7 @@ class NetworkManager(object):
 
     def __init__(self, *args, **kwargs):
         self.default_router = kwargs.pop("router_name", None)
-        self.neutron, self.sahara  = self.new_connection(*args, **kwargs)
+        self.neutron, self.sahara, self.heat  = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
@@ -41,16 +41,19 @@ class NetworkManager(object):
         if 'auth_url' in kwargs and '/v2' in kwargs['auth_url']:
             neutron = _connect_to_neutron(*args, **kwargs)
             sahara = None
+            heat = None
         elif 'session' not in kwargs:
             if 'project_name' not in kwargs and 'tenant_name' in kwargs:
                 kwargs['project_name'] = kwargs['tenant_name']
             (auth, session, token) = _connect_to_keystone_v3(**kwargs)
             neutron = _connect_to_neutron(session=session)
             sahara = _connect_to_sahara(session=session)
+            heat = _connect_to_heat(session=session)
         else:
             neutron = _connect_to_neutron(*args, **kwargs)
             sahara = _connect_to_sahara(*args, **kwargs)
-        return neutron, sahara
+            heat = _connect_to_heat(*args, **kwargs)
+        return neutron, sahara, heat
 
     def tenant_networks(self, tenant_id=None):
         if not tenant_id:
