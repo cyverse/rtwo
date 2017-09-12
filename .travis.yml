@@ -2,8 +2,8 @@ language: python
 python:
   - "2.7"
 dist: trusty
-script:
-
+script: 
+  - python setup.py install 
 deploy:
   provider: pypi
   user: atmosphere
