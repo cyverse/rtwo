@@ -1,6 +1,8 @@
 rtwo
 ====
 
+[![Build Status](https://travis-ci.org/cyverse/rtwo.svg?branch=master)](https://travis-ci.org/cyverse/rtwo)
+
 A unified interface into multiple cloud providers.
 
 Built on top of Apache libcloud with support for modern OpenStack. Also supports legacy Eucalyptus 2.x and AWS.
