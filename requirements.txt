@@ -11,4 +11,3 @@ python-novaclient==6.0.0
 python-saharaclient==1.2.0
 python-swiftclient==3.3.0
 python-openstackclient==3.3.0
-pbr>=1.8,<2.0
