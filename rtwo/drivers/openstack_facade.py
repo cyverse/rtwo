@@ -1284,6 +1284,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     please provide the floating IP address")
                     return None
                 address = public_ips[0]
+            if not address:
+                logger.warn("No public IP address found for instance %s", server.id)
+                return None
             server_resp = self.connection.request(
                 '/servers/%s/action' % server.id,
                 method='POST',
