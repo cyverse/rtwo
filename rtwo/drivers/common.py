@@ -164,7 +164,12 @@ def _connect_to_keystone(*args, **kwargs):
     Deprecated: keystoneclient is going away after legacy clouds have been upgraded.
     Use openstackclient instead.
     """
-    logger.warn("Deprecated: keystoneclient is going away after legacy clouds have been upgraded -- convert to openstack-client/sdk")
+
+    try:
+        raise Exception()
+    except:
+        logger.exception("Deprecated: keystoneclient is going away after legacy clouds have been upgraded -- convert to openstack-client/sdk")
+
     version = kwargs.get('version', 'v2.0')
     if version == 'v2.0':
         from keystoneclient.v2_0 import client as ks_client
