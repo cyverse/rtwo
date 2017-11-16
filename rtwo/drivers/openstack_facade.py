@@ -930,42 +930,82 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         # In the current implementation of liberty on jetstream, a call to 'list_all_tenants'
         # Made by a user with a single tenant will produce *IDENTICAL* results to that same call made by admin.
         # THIS IS CONSIDERED HARMFUL! So we have blocked all users except the admin accounts from making this call.
-        if self.key not in ['atmoadmin','admin']:
-            query_params = ""
-        else:
-            query_params = "?all_tenants=1"
+        all_tenants = False
+        if self.key in ['atmoadmin','admin']:
+            all_tenants = True
+        query_params = "?all_tenants=1" if all_tenants else ""
         server_resp = self.connection.request(
             '/servers/detail%s' % query_params,
             method='GET')
         all_instances = []
+        all_instances_by_id = []
         next_page = False
         # Walk through any pagination links
         while True:
             last_response = server_resp.object
             if type(last_response) != dict or 'servers' not in last_response:
                 raise Exception("The response output for nova has changed (Missing 'servers') -- Ask a developer to update this line of code!")
-            all_instances.extend(last_response['servers'])
+            instances = last_response['servers']
+            instance_count = len(instances)
+            all_instances.extend(instances)
+            # HACK -  This 'tracking hack' should also be removed when we can trust the openstack API
+            all_instances_by_id.extend([i['id'] for i in instances if i['id'] not in all_instances_by_id])
             page_links = last_response.get('servers_links',[])
-            if not page_links:
-                break
+            redirect_to = None
             next_page = False
-            for link in page_links:
-                if next_page:  # we have the right link, skip all others.
-                    continue
-                if type(link) != dict or 'rel' not in link or 'href' not in link:  # Link is invalid.
-                    raise Exception("The pagination (servers_links) response for nova has changed -- Ask a developer to update this line of code!")
-                link_type = link.get('rel')
-                # Ignore any links that don't point to next page
-                if link_type != 'next':
-                    continue
-                full_servers_url = link.get('href')
-                query_params = "?" + full_servers_url.partition('?')[2] # apply query params and make the next request.
-                next_page = True
-            server_resp = self.connection.request(
-                '/servers/detail%s' % query_params,
-                method='GET')
+            if page_links:
+                for link in page_links:
+                    if next_page:  # we have the right link, skip all others.
+                        continue
+                    if type(link) != dict or 'rel' not in link or 'href' not in link:  # Link is invalid.
+                        raise Exception("The pagination (servers_links) response for nova has changed -- Ask a developer to update this line of code!")
+                    link_type = link.get('rel')
+                    # Ignore any links that don't point to next page
+                    if link_type != 'next':
+                        continue
+                    full_servers_url = link.get('href')
+                    query_params = "?" + full_servers_url.partition('?')[2] # apply query params and make the next request.
+                    server_resp = self.connection.request(
+                        '/servers/detail%s' % query_params,
+                        method='GET')
+                    next_page = True
+            elif instance_count > 500:
+                # THIS IS A DIRTY DIRTY HACK!
+                # This snippet was added to address an immediate problem,
+                # where the underlying issue is that we can no longer
+                # trust the openstack API to properly paginate the
+                # results. We have _a lot_ of results, lets double-check\
+                # that there is _not_ in fact more servers to account for:
+                last_instance_marker = last_response['servers'][-1]['id']
+                query_params = "?all_tenants=1" if all_tenants else ""
+                query_params += "%smarker=%s" % ("&" if all_tenants else "?", last_instance_marker)
+                server_resp = self.connection.request(
+                    '/servers/detail%s' % query_params,
+                    method='GET')
+                new_response = server_resp.object
+                contains_server_id = any(i for i in new_response['servers'] if i['id'] == last_instance_marker)
+                next_page = True if (not contains_server_id) else False
+                if next_page:
+                    logger.warn("WARNING: The api send there were no more results, but %s additional results were found.", len(new_response['servers']))
+# Double-check that 'marker' is not included in the list, and re-call if count is the same as last
             if not next_page:
                 break
+        # HACK -  This 'tracking hack' should also be removed when we can trust the openstack API
+        if len(all_instances) != len(all_instances_by_id):
+            duplicate_count = abs(len(all_instances) - len(all_instances_by_id))
+            duplicates = []
+            unique_instance_ids = []
+            unique_instances = []
+            for inst in all_instances:
+                if inst['id'] not in unique_instance_ids:
+                    unique_instances.append(inst)
+                    unique_instance_ids.append(inst['id'])
+                else:
+                    if not any(i for i in duplicates if i['id'] == inst['id']):
+                        duplicates.append(inst)
+            all_instances = unique_instances
+            logger.warn("The Openstack API is returning back non-unique pagination. %s Duplicate values have been found: %s" % (duplicate_count, duplicates))
+        # END-HACK -  This 'tracking hack' should also be removed when we can trust the openstack API
         # Return a completed list of instances from the API, in the original format.
         return self._to_nodes({'servers': all_instances})
 
