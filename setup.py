@@ -7,10 +7,9 @@ from unittest import TextTestRunner, TestLoader
 from glob import glob
 from os.path import splitext, basename, join as pjoin
 import setuptools
-from rtwo.version import get_version, read_requirements
+from rtwo.version import get_version
 
 readme = open('README.md').read()
-dependencies, requirements = read_requirements('requirements.txt')
 
 long_description = """
 rtwo %s
@@ -96,8 +95,21 @@ setuptools.setup(
     license="BSD License, 3 clause",
     url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
     packages=setuptools.find_packages(),
-    dependency_links=dependencies,
-    install_requires=requirements,
+    dependency_links=[],
+    install_requires=[
+        "apache-libcloud",
+        "python-cinderclient",
+        "python-glanceclient",
+        "python-heatclient",
+        "python-irodsclient",
+        "python-neutronclient",
+        "python-novaclient",
+        "python-openstackclient",
+        "python-saharaclient",
+        "python-swiftclient",
+        "rfive",
+        "threepio"
+    ],
     cmdclass={
         'test': TestCommand,
     },
