@@ -1719,54 +1719,56 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
            return (False, None)
 
     def ex_update_quota(self, tenant_id, values, use_tenant_id=True):
-       """
-       Updates value/values in quota set
-       @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
-       @type    tenant_id: C{str}
-       @keyword values: A Dict containing the new key/value for quota set
-       @type    values: C{dict}
-       """
-       if use_tenant_id:
-           values['tenant_id'] = tenant_id
-       body = {'quota_set': values}
-       server_resp = self.connection.request('/os-quota-sets/%s'
-                                             % (tenant_id,),
-                                             method='PUT',
-                                             data=body)
-       try:
-           quota_obj = server_resp.object
-           return (server_resp.status == 200, quota_obj)
-       except Exception, e:
-           logger.exception("Exception occured updating quota. Body:%s"
-                            % body)
-           return (False, None)
-
+        """
+        Updates value/values in quota set
+        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+        @type    tenant_id: C{str}
+        @keyword values: A Dict containing the new key/value for quota set
+        @type    values: C{dict}
+        @keyword use_tenant_id:
+        @type    use_tenant_id: C{bool}
+        """
+        if use_tenant_id:
+            values['tenant_id'] = tenant_id
+        body = {'quota_set': values}
+        try:
+            server_resp = self.connection.request('/os-quota-sets/%s'
+                                                  % (tenant_id,),
+                                                  method='PUT',
+                                                  data=body)
+            quota_obj = server_resp.object
+            return (server_resp.status == 200, quota_obj)
+        except Exception as e:
+            logger.exception("Exception occured updating quota. Body:%s"
+                             % body)
+            return (False, None)
 
     def ex_update_quota_for_user(self, tenant_id, user_id, values, use_tenant_id=True):
-       """
-       Updates value/values in quota set
-       @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
-       @type    tenant_id: C{str}
-       @keyword user_id: User ID to update. Typically a UUID.
-       @type    user_id: C{str}
-       @keyword values: A Dict containing the new key/value for quota set
-       @type    values: C{dict}
-       """
-       if use_tenant_id:
-           values['tenant_id'] = tenant_id
-       body = {'quota_set': values}
-       server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
-                                             % (tenant_id, user_id),
-                                             method='PUT',
-                                             data=body)
-       try:
-           quota_obj = server_resp.object
-           return (server_resp.status == 200, quota_obj)
-       except BaseHTTPError, e:
-           if 'Quota limit' in e.msg or 'must be less' in e.msg or 'must less' in e.msg:
-               return self.ex_update_quota(self, tenant_id, values)
-       except Exception, e:
-           logger.exception("Exception occured updating quota. Body:%s"
-                            % body)
-           return (False, None)
+        """
+        Updates value/values in quota set
+        @keyword tenant_id: Tenant or Project ID to update. Typically a UUID.
+        @type    tenant_id: C{str}
+        @keyword user_id: User ID to update. Typically a UUID.
+        @type    user_id: C{str}
+        @keyword values: A Dict containing the new key/value for quota set
+        @type    values: C{dict}
+        @keyword use_tenant_id:
+        @type    use_tenant_id: C{bool}
+        """
+        if use_tenant_id:
+            values['tenant_id'] = tenant_id
+        body = {'quota_set': values}
+        try:
+            server_resp = self.connection.request('/os-quota-sets/%s?user_id=%s'
+                                                  % (tenant_id, user_id),
+                                                  method='PUT',
+                                                  data=body)
 
+            quota_obj = server_resp.object
+            return (server_resp.status == 200, quota_obj)
+        except BaseHTTPError as e:
+            if 'Quota limit' in e.message or 'must be less' in e.message or 'must less' in e.message:
+                return self.ex_update_quota(self, tenant_id, values)
+        except Exception as e:
+            logger.exception("Exception occured updating quota. Body:%s" % body)
+        return (False, None)
