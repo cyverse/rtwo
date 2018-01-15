@@ -1171,9 +1171,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             raise ValueError("Hypervisor name %s has no corresponding ID.")
         return matches[0]
 
+    def ex_lookup_hypervisor_name_by_id(self, node_id):
+        matches = [hv['hypervisor_hostname'] for hv in self.ex_list_hypervisor_nodes()
+                   if hv['id'] == node_id]
+        if not matches:
+            raise ValueError("Hypervisor ID %s has no corresponding hostname.")
+        return matches[0]
+
     def ex_list_instances_on_node(self, node_id):
-        if type(node_id) == str:
-            node_id = self.ex_lookup_hypervisor_id_by_name(node_id)
+        if type(node_id) == int:
+            node_id = self.ex_lookup_hypervisor_name_by_id(node_id)
         return self.connection.request(
             "/os-hypervisors/%s/servers" % node_id).object['hypervisors']
 
