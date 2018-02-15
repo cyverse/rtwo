@@ -436,6 +436,9 @@ class OSDriver(EshDriver, InstanceActionMixin):
             identifier,
             super(EshDriver,self).list_machines, *args, **kwargs)
 
+    def get_instance(self, alias):
+        instance = self._connection.ex_get_node_details(alias)
+        return self.provider.instanceCls(instance, self)
 
     def deploy_init_to(self, *args, **kwargs):
         """
