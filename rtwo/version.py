@@ -5,7 +5,7 @@ Current logger version.
 from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
-VERSION = (0, 5, 15, 'dev', 1)
+VERSION = (0, 6, 0, 'dev', 1)
 
 
 def version_str():
