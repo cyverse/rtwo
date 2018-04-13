@@ -88,12 +88,12 @@ class TestCommand(Command):
 setuptools.setup(
     name='rtwo',
     version=get_version('short'),
-    author='iPlant Collaborative',
-    author_email='atmodevs@gmail.com',
+    author='CyVerse',
+    author_email='atmo-dev@cyverse.org',
     description="A unified interface into multiple cloud providers.",
     long_description=long_description,
     license="BSD License, 3 clause",
-    url="https://github.com/iPlantCollaborativeOpenSource/rtwo",
+    url="https://github.com/cyverse/rtwo",
     packages=setuptools.find_packages(),
     dependency_links=[],
     install_requires=[
