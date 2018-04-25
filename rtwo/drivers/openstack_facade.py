@@ -928,8 +928,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         List all instances from all tenants of a user
         """
 
-        # Fetch 500 at a time, until all fetched
-        query_params = 'all_tenants=1&limit=500'
+        # Atmosphere depends on the fact that this fetches all instances for a
+        # tenant, but all tenants' instances for admin tenants. Hacky, but
+        # easy enough to fix.
+        all_tenants = self.key in ['atmoadmin','admin']
+        query_params = "limit=500" + ("&all_tenants=1" if all_tenants else "")
         servers = []
 
         while True:
