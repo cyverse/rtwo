@@ -182,7 +182,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                  'name': api_ss.get('displayName',api_ss.get('display_name')),
                  'created': api_ss.get('createdAt',api_ss.get('created_at')),
                  'description': api_ss.get('displayDescription', api_ss.get('display_description')),
-                 'status': api_ss['status']} 
+                 'status': api_ss['status']}
         snapshot = VolumeSnapshot(id=api_ss['id'], driver=self,
                                   size=api_ss['size'], extra=extra)
         return snapshot
@@ -429,7 +429,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         else:
             raise ValueError("To boot a volume, you must select a source."
                     " Available Sources: [image, volume, snapshot]")
-            
+
 
         #NOTE: Wrapped in a list
         server_params["block_device_mapping_v2"] = [block_device_mapping]
@@ -928,8 +928,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         List all instances from all tenants of a user
         """
 
-        # Fetch 500 at a time, until all fetched
-        query_params = 'all_tenants=1&limit=500'
+        # Atmosphere depends on the fact that this fetches all instances for a
+        # tenant, but all tenants' instances for admin tenants. Hacky, but
+        # easy enough to fix.
+        all_tenants = self.key in ['atmoadmin','admin']
+        query_params = "limit=500" + ("&all_tenants=1" if all_tenants else "")
         servers = []
 
         while True:
