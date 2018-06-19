@@ -152,19 +152,24 @@ class NetworkManager(object):
         deleted_ip = self.neutron.delete_floatingip(floating_ip_id)
         return
 
-    def associate_floating_ip(self, server_id):
+    def associate_floating_ip(self, server_id, external_network_id=None):
         """
         Create a floating IP on the external network
         Find port of new VM
         Associate new floating IP with the port assigned to the new VM
+        If external_network_id is not specified then an external network is
+        chosen arbitrarily. This may not work if there are multiple external
+        networks.
         """
         networks = self.list_networks()
-        external_networks = [net for net in networks 
-                             if net['router:external'] == True]
-        if not external_networks:
-            raise Exception("CONFIGURATION ERROR! No external networks found!"
-                            " Cannot associate floating ip without it!"
-                            " Create a fixed IP/port first!")
+        if external_network_id is None:
+            external_networks = [net for net in networks
+                                 if net['router:external']]
+            if not external_networks:
+                raise Exception("CONFIGURATION ERROR! No external networks"
+                                " found! Cannot associate floating ip without"
+                                " it! Create a fixed IP/port first!")
+            external_network_id = external_networks[0]['id']
 
         instance_ports = self.list_ports(device_id=server_id)
         if not instance_ports:
@@ -174,7 +179,7 @@ class NetworkManager(object):
         #re-create
         body = {'floatingip': {
                    'port_id': instance_ports[0]['id'],
-                   'floating_network_id': external_networks[0]['id']
+                   'floating_network_id': external_network_id
                }}
         new_ip = self.neutron.create_floatingip(body)['floatingip']
 
