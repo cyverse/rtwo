@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.19...HEAD) - YYYY-MM-DD
+## [0.5.21](https://github.com/cyverse/rtwo/compare/0.5.20...0.5.21) - 2018-06-29
+### Fixed
+ - The incorrect version (0.5.19) of rtwo was was uploaded to pypi as 0.5.20. The
+   changes originally intended for 0.5.20 were re-uploaded as 0.5.21
+
 ## [0.5.20](https://github.com/cyverse/rtwo/compare/0.5.19...0.5.20) - 2018-06-19
 ### Changed
  - Allow external network to be explicitly passed to `associate_floating_ip` ([#27](https://github.com/cyverse/rtwo/pull/27))
