@@ -3,8 +3,9 @@ Atmosphere service instance.
 
 """
 from threepio import logger
+from libcloud.compute.types import NodeState
 
-from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
+from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider, MockProvider
 from rtwo.models.volume import OSVolume, Volume, MockVolume
 from rtwo.models.machine import OSMachine, Machine, MockMachine
 from rtwo.models.size import Size, MockSize
@@ -37,7 +38,7 @@ class Instance(object):
         return None
     def _get_source_image(self, node):
         return None
-    def _get_source_volume(self, node):
+    def _get_source_volume(self, node, driver):
         return None
 
 
@@ -184,7 +185,7 @@ class OSInstance(Instance):
     def _test_node_is_booted_volume(self, driver, node, attachments=[]):
         """
         Given a node and a volume_id, return 'volume' if the node
-        is 'running' the volume, otherwise return None 
+        is 'running' the volume, otherwise return None
         """
         instance_id = node.id
         if not attachments:
@@ -252,6 +253,38 @@ class OSInstance(Instance):
                 status += ' - %s' % extra_status
 
         return status
+
+    def get_public_ip(self):
+        if hasattr(self, "ip"):
+            return self.ip
+        if self._node and self._node.public_ips:
+            return self._node.public_ips[0]
+
+
+class MockInstance(Instance):
+
+    provider = MockProvider
+
+    def __init__(self, node, driver):
+        super(MockInstance, self).__init__(node, driver)
+        if not self.size:
+            self.size = MockSize(None, self.provider)
+        if not self.source:
+            self.source = MockMachine(None, self.provider)
+
+    def get_status(self):
+        status_map = {
+            NodeState.TERMINATED: "terminated",
+            NodeState.ERROR: "error",
+            NodeState.REBOOTING: "rebooting",
+            NodeState.PAUSED: "paused",
+            NodeState.RUNNING: "active",
+            NodeState.STOPPED: "shutoff",
+            NodeState.SUSPENDED: "suspended",
+            NodeState.UNKNOWN: "unknown",
+            NodeState.PENDING: "pending"
+        }
+        return status_map.get(self._node.state, "unknown")
 
     def get_public_ip(self):
         if hasattr(self, "ip"):

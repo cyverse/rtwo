@@ -9,6 +9,7 @@ from libcloud.compute.types import Provider as LProvider
 from threepio import logger
 
 from rtwo.drivers.openstack_facade import OpenStack_Esh_NodeDriver
+from rtwo.drivers.mock import MockNodeDriver
 from rtwo.drivers.eucalyptus import Eucalyptus_Esh_NodeDriver
 from rtwo.drivers.aws import Esh_EC2NodeDriver
 
@@ -233,6 +234,20 @@ class EucaProvider(Provider):
 class MockProvider(Provider):
     name = 'Mock'
     location = 'MOCK'
+
+    @classmethod
+    def set_meta(cls):
+        from rtwo.models.identity import MockIdentity
+        from rtwo.models.machine import MockMachine
+        from rtwo.models.instance import MockInstance
+        from rtwo.models.size import MockSize
+        from rtwo.models.volume import MockVolume
+        cls.identityCls = MockIdentity
+        cls.machineCls = MockMachine
+        cls.instanceCls = MockInstance
+        cls.sizeCls = MockSize
+        cls.volumeCls = MockVolume
+
     def set_options(self, provider_credentials):
         """
         Get provider specific options.
@@ -255,7 +270,9 @@ class MockProvider(Provider):
         Return the libcloud.compute driver class.
         """
         self.set_options(provider_credentials)
-        return None
+        self.lc_driver = MockNodeDriver
+        return self.lc_driver(provider_credentials)
+
 
 class OSProvider(Provider):
 

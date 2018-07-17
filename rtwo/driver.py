@@ -348,9 +348,40 @@ class MockDriver(EshDriver, InstanceActionMixin):
     def is_valid(self):
         return True
 
-    def __init__(self, provider, identity, **provider_credentials):
-        super(MockDriver, self).__init__(provider, identity, **provider_credentials)
-        #Set connection && force_service_region
+    def list_locations(self, *args, **kwargs):
+        return []
+
+    def create_instance(self, *args, **kwargs):
+        """
+        Return the InstanceClass representation of a libcloud node
+        """
+        default_extra = {
+            "metadata": {},
+            "status": "active",
+            "task": "",
+            "availability_zone": "nova",
+            "created": datetime.strftime(datetime.now(),
+                                         "%Y-%m-%dT%H:%M:%SZ")
+        }
+        default_extra.update(kwargs.get("extra", {}))
+        kwargs["extra"] = default_extra
+        return super(MockDriver, self).create_instance(*args, **kwargs)
+
+    def _clean_floating_ip(self, *args, **kwargs):
+        return self._connection.ex_clean_floating_ip(**kwargs)
+
+    def suspend_instance(self, instance):
+        return self._connection.suspend_node(instance._node)
+
+    def resume_instance(self, instance):
+        return self._connection.resume_node(instance._node)
+
+    def start_instance(self, instance):
+        return self._connection.start_node(instance._node)
+
+    def stop_instance(self, instance):
+        return self._connection.stop_node(instance._node)
+
 
 class OSDriver(EshDriver, InstanceActionMixin):
     """

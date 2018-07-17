@@ -3,6 +3,7 @@ Atmosphere service machine.
 
 """
 from abc import ABCMeta
+import uuid
 
 from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
 
@@ -15,6 +16,8 @@ class BaseMachine(object):
 class MockMachine(BaseMachine):
 
     def __init__(self, image_id, provider):
+        if not image_id:
+            image_id = uuid.uuid4()
         self.id = image_id
         self.alias = image_id
         self.name = 'Unknown image %s' % image_id

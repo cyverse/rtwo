@@ -3,6 +3,7 @@ Atmosphere service size.
 
 """
 from abc import ABCMeta
+import uuid
 
 from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
 from threepio import logger
@@ -110,6 +111,8 @@ class Size(BaseSize):
 
 class MockSize(Size):
     def __init__(self, size_id, provider):
+        if not size_id:
+            size_id = uuid.uuid4()
         self.provider = provider
         self._size = None
         self.name = "Unknown Size %s" % size_id
