@@ -24,7 +24,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.19...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.22...HEAD) - YYYY-MM-DD
+## [0.5.22](https://github.com/cyverse/rtwo/compare/0.5.21...0.5.22) - 2018-08-02
+### Changed
+ - Change ex_list_all_instances performs manual pagination, doesn't rely on
+   optional servers_links ([#31](https://github.com/cyverse/rtwo/pull/31))
+
 ## [0.5.21](https://github.com/cyverse/rtwo/compare/0.5.20...0.5.21) - 2018-06-29
 ### Fixed
  - The incorrect version (0.5.19) of rtwo was was uploaded to pypi as 0.5.20. The

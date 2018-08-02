@@ -9,7 +9,6 @@ import os
 import socket
 import sys
 import time
-import urlparse
 from datetime import datetime
 
 from threepio import logger
@@ -928,27 +927,28 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         List all instances from all tenants of a user
         """
 
+        def build_query_params(all_tenants, limit, marker=None):
+            return "all_tenants={}".format("True" if all_tenants else "False") + \
+                "&limit={}".format(limit) + \
+                ("&marker={}".format(marker) if marker else "")
+
         # Atmosphere depends on the fact that this fetches all instances for a
         # tenant, but all tenants' instances for admin tenants. Hacky, but
         # easy enough to fix.
         all_tenants = self.key in ['atmoadmin','admin']
-        query_params = "limit=500" + ("&all_tenants=1" if all_tenants else "")
+        limit = 500
+        query_params = build_query_params(all_tenants, limit)
         servers = []
 
         while True:
-            response = self.connection.request("/servers/detail?" + query_params, method='GET')
+            response = self.connection.request("/servers/detail?" + query_params)
             data = response.object;
             servers.extend(data['servers'])
-            page_links = data.get('servers_links', [])
-            if not page_links:
+            if len(data['servers']) < limit:
                 break
 
-            next_link = next((link for link in page_links if link.get('rel') == "next"), None)
-            if not next_link:
-                break
-
-            parsed = urlparse.urlparse(next_link.get('href'))
-            query_params = parsed.query
+            last_server = data['servers'][-1]
+            query_params = build_query_params(all_tenants, limit, marker=last_server["id"])
 
         return self._to_nodes({'servers': servers})
 
