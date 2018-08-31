@@ -29,6 +29,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Change ex_list_all_instances to fetch next page until no remaining results
     ([#32](https://github.com/cyverse/rtwo/pull/32))
 
+### Fixed
+  - Travis automatically pushes new pypi release when tags are pushed
+    ([#33](https://github.com/cyverse/rtwo/pull/33))
+
 ## [0.5.22](https://github.com/cyverse/rtwo/compare/0.5.21...0.5.22) - 2018-08-02
 ### Changed
   - Change ex_list_all_instances performs manual pagination, doesn't rely on
