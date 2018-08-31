@@ -24,7 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.22...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.23...HEAD) - YYYY-MM-DD
+## [0.5.23](https://github.com/cyverse/rtwo/compare/0.5.22...0.5.23) - 2018-08-31
 ### Changed
   - Change ex_list_all_instances to fetch next page until no remaining results
     ([#32](https://github.com/cyverse/rtwo/pull/32))
