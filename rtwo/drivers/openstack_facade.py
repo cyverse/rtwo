@@ -944,7 +944,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             response = self.connection.request("/servers/detail?" + query_params)
             data = response.object;
             servers.extend(data['servers'])
-            if len(data['servers']) < limit:
+
+            # It would be smarter to just check if len < limit. In practice
+            # the compute apis sometimes return less than page limit even when
+            # more pages exist
+            if not len(data['servers']):
                 break
 
             last_server = data['servers'][-1]
