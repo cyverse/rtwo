@@ -1,13 +1,14 @@
 language: python
 python:
-  - "2.7"
+- '2.7'
 dist: trusty
-script: 
-  - python setup.py install 
+script:
+- python setup.py install
 deploy:
   provider: pypi
   user: atmosphere
+  distributions: sdist bdist_wheel
   password:
-    secure: RpKQdpwtHPtS2NBE1J/VkwA98I1GPWCXAbsviScYuaDvqDmGsbMRvo4yp4/luza3iSJJVw+HR+GjmN2S0F++k9nHRLoBGjyLs0FWSUw0P0wsVq2A9+hpgLbxygBoLD5Q7RhxqVHoIabmalgIN7qBUU4wMG/PULRNGGxKkorghdU=
+    secure: SfBtciFzuzKsuWFYoKBmTHyrUFkfhCDSQILV2G5nlvcs/zV1OVjUX6gdevEMm57orKfL9F+RPp0a+o0Q+XdtktmOES4HZCbJjKE53zA4O4y8TbSg8rQ/+pEv3HOgD87vNnjLRVq+OKetF22pac3QTwhfbGOfMEfv+cm1H8t9uos=
   on:
     tags: true
