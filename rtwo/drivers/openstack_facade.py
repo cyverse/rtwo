@@ -935,14 +935,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         # Atmosphere depends on the fact that this fetches all instances for a
         # tenant, but all tenants' instances for admin tenants. Hacky, but
         # easy enough to fix.
-        all_tenants = self.key in ['atmoadmin','admin']
+        all_tenants = self.key in ['atmoadmin', 'admin']
         limit = 500
         query_params = build_query_params(all_tenants, limit)
         servers = []
 
         while True:
-            response = self.connection.request("/servers/detail?" + query_params)
-            data = response.object;
+            response = self.connection.request(
+                "/servers/detail?" + query_params
+            )
+            data = response.object
             servers.extend(data['servers'])
 
             # It would be smarter to just check if len < limit. In practice
@@ -952,7 +954,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 break
 
             last_server = data['servers'][-1]
-            query_params = build_query_params(all_tenants, limit, marker=last_server["id"])
+            query_params = build_query_params(
+                all_tenants, limit, marker=last_server["id"]
+            )
 
         return self._to_nodes({'servers': servers})
 
