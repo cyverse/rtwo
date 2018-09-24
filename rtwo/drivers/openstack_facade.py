@@ -936,8 +936,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         # tenant, but all tenants' instances for admin tenants. Hacky, but
         # easy enough to fix.
         all_tenants = self.key in ['atmoadmin', 'admin']
+        non_pagination_timeout = 5 * 60 if all_tenants else 60
         limit = 500
         query_params = build_query_params(all_tenants, limit)
+        current_server_set = set()
         servers = []
 
         while True:
@@ -946,6 +948,30 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             )
             data = response.object
             servers.extend(data['servers'])
+
+            new_server_set = {s['id'] for s in data['servers']}
+            if current_server_set.intersection(new_server_set):
+                logger.error(
+                    "The compute api is returning duplicates in its "
+                    "pagination logic when fetching all instances. We are "
+                    "going to workaround this issue and fetch all instances "
+                    "without pagination"
+                )
+
+                # Make a non-paginated request with an exceptionally large
+                # timeout
+                old_timeout = self.connection.timeout
+                self.connection.timeout = non_pagination_timeout
+                response = self.connection.request(
+                    "/servers/detail?" + "all_tenants=True"
+                    if all_tenants else "",
+                    max_attempts=1
+                )
+                self.connection.timeout = old_timeout
+                data = response.object
+                servers = data['servers']
+                break
+            current_server_set.update(new_server_set)
 
             # It would be smarter to just check if len < limit. In practice
             # the compute apis sometimes return less than page limit even when
