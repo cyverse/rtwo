@@ -2,6 +2,7 @@
 Atmosphere service instance.
 
 """
+from libcloud.common.exceptions import BaseHTTPError
 from threepio import logger
 
 from rtwo.models.provider import AWSProvider, EucaProvider, OSProvider
@@ -174,7 +175,10 @@ class OSInstance(Instance):
             attachments = node.extra.get('volumes_attached')
         if not attachments:
             return None
-        volume = self._test_node_is_booted_volume(driver, node, attachments)
+        try:
+            volume = self._test_node_is_booted_volume(driver, node, attachments)
+        except BaseHTTPError:
+            return None
         if not volume:
             return None
         source = OSVolume(volume)
