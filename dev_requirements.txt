@@ -1,1 +1,7 @@
 ipython==4.0.0
+mock
+requests-mock
+pytest
+cryptography
+paramiko
+pycrypto

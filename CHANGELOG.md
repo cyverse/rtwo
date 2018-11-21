@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.24...HEAD) - YYYY-MM-DD
+### Added
+  - Added missing packages to dev_requirements.txt
+    ([#37](https://github.com/cyverse/rtwo/pull/37))
+
 ## [0.5.24](https://github.com/cyverse/rtwo/compare/0.5.23...0.5.24) - 2018-09-24
 ### Added
   - Added graceful handling of pagination errors
