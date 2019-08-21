@@ -24,13 +24,13 @@ class Instance(object):
         Retrieve correct source based on instance details
         NOTE: Occasionally more data may be required/things may slow down here.
         """
-        source = self._get_source_volume(node, driver)
-        if source:
-            return source
         source = self._get_source_snapshot(node)
         if source:
             return source
         source = self._get_source_image(node)
+        if source:
+            return source
+        source = self._get_source_volume(node, driver)
         return source
 
     def _get_source_snapshot(self, node):
@@ -184,7 +184,7 @@ class OSInstance(Instance):
     def _test_node_is_booted_volume(self, driver, node, attachments=[]):
         """
         Given a node and a volume_id, return 'volume' if the node
-        is 'running' the volume, otherwise return None 
+        is 'running' the volume, otherwise return None
         """
         instance_id = node.id
         if not attachments:
