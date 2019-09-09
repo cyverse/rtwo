@@ -24,10 +24,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.24...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.25...HEAD) - YYYY-MM-DD
+
+## [Unreleased](https://github.com/cyverse/rtwo/compare/0.5.24...0.5.25) - 2019-09-09
 ### Fixed
   - Handle Libcloud exceptions when loading instances with missing source volume 
     ([#40](https://github.com/cyverse/rtwo/pull/40))
+
 ## [0.5.24](https://github.com/cyverse/rtwo/compare/0.5.23...0.5.24) - 2018-09-24
 ### Added
   - Added graceful handling of pagination errors
