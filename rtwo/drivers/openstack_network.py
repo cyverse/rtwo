@@ -460,10 +460,9 @@ class NetworkManager(object):
         if subnet_pool_id:
             subnet['subnetpool_id'] = subnet_pool_id
         else:
-            if not dns_nameservers:
-                dns_nameservers = ['8.8.8.8', '8.8.4.4']
-            subnet['dns_nameservers'] = dns_nameservers
-            subnet['cidr'] = cidr
+            if dns_nameservers:
+                subnet['dns_nameservers'] = dns_nameservers
+                subnet['cidr'] = cidr
         logger.debug("Creating subnet - %s" % subnet)
         subnet_obj = neutron.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
