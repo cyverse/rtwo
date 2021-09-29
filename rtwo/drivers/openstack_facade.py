@@ -950,21 +950,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             servers.extend(data['servers'])
 
             new_server_set = {s['id'] for s in data['servers']}
-            if current_server_set.intersection(new_server_set):
+            instance_intersection = current_server_set.intersection(new_server_set)
+            if instance_intersection:
                 logger.error(
                     "The compute api is returning duplicates in its "
                     "pagination logic when fetching all instances. We are "
                     "going to workaround this issue and fetch all instances "
                     "without pagination"
                 )
+                logger.debug("instances intersection: {}".format(instance_intersection))
 
                 # Make a non-paginated request with an exceptionally large
                 # timeout
                 old_timeout = self.connection.timeout
                 self.connection.timeout = non_pagination_timeout
                 response = self.connection.request(
-                    "/servers/detail?" + "all_tenants=True"
-                    if all_tenants else "",
+                    "/servers/detail?" +
+                    ("all_tenants=True" if all_tenants else ""),
                     max_attempts=1
                 )
                 self.connection.timeout = old_timeout
